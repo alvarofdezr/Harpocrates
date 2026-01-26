@@ -7,7 +7,6 @@ from core.vault import VaultManager
 from core.crypto import HarpocratesCrypto
 from core.generator import PasswordGenerator
 
-# Cargar configuración desde .env
 load_dotenv()
 
 BANNER = r"""
@@ -40,7 +39,6 @@ def secure_copy(data):
         print(f"[!] Error al acceder al portapapeles: {e}")
 
 def run_cli():
-    # Limpiar pantalla según SO
     os.system('cls' if os.name == 'nt' else 'clear')
     print(BANNER)
     
@@ -48,7 +46,6 @@ def run_cli():
     vault_path = os.getenv("VAULT_PATH", "vault.hpro")
     vault = VaultManager(vault_path)
 
-    # Autenticación inicial
     m_pass = input("[?] Master Password: ")
     
     if not os.path.exists(vault_path):
@@ -63,7 +60,6 @@ def run_cli():
         s_key = input("[?] Secret Key: ")
 
     try:
-        # Validación de integridad inicial
         vault.load_vault(m_pass, s_key)
         print("\n[✓] Acceso Concedido. Bóveda descifrada en memoria.")
         
