@@ -205,3 +205,9 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+
+# Harpocrates specific
+*.hpro
+secret_key.txt
+*.backup
