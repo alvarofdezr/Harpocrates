@@ -1,3 +1,9 @@
+<p align="center">
+  <img src="img/icono.png" width="250" alt="Harpocrates Logo">
+</p>
+
+---
+
 # Harpocrates Vault v1.0
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -60,10 +66,37 @@ Harpocrates goes beyond standard security by implementing a dual-factor key deri
 | **Data Tampering** | AES-GCM provides AEAD (Authenticated Encryption with Associated Data). Any modification to the encrypted file results in a decryption failure. |
 | **Memory Dump** | Harpocrates uses local variables and minimizes long-term RAM storage of sensitive keys (Work in Progress). |
 
+
+## 🛠️ Technical Specifications
+
+<details>
+<summary><b>Click to expand Encryption Details</b></summary>
+
+- **Core Algorithm:** AES-256-GCM (Authenticated Encryption)
+- **Key Derivation Function (KDF):** Argon2id
+- **Salt:** 16 bytes (randomly generated per vault)
+- **Nonce/IV:** 12 bytes (unique per encryption cycle)
+- **Key Length:** 256-bit for AES / 128-bit for Secret Key
+</details>
+
+<details>
+<summary><b>System Requirements</b></summary>
+
+- **Python Version:** 3.8 or higher
+- **Dependencies:** - `cryptography` (Engine)
+  - `argon2-cffi` (Hashing)
+  - `python-dotenv` (Configuration)
+  - `pyperclip` (Secure Clipboard)
+</details>
+
+## 📜 License
+
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+
 ## ⚠️ Disclaimer
 
 This project is for educational purposes in the field of cybersecurity. Use at your own risk.
 
 ---
 
-Developed with 🛡️ by alvarofdezr
+Developed by alvarofdezr
