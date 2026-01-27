@@ -56,7 +56,7 @@ def check_strength(password):
         return "\n[✓] EXCELENTE: Fortaleza criptográfica alta."
     
 def run_cli():
-    os.system('cls' if os.name == 'nt' else 'clear')
+    os.system('cls' if os.name == 'nt' else 'clear')  # nosec
     print(BANNER)
     
     crypto = HarpocratesCrypto()
