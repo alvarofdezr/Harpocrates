@@ -1,75 +1,68 @@
 import json
 import os
-import uuid
 from datetime import datetime
 from core.crypto import HarpocratesCrypto
 
 class VaultManager:
-    def __init__(self, file_path: str):
-        self.file_path = file_path
+    def __init__(self, vault_path="vault.hpro"):
+        self.vault_path = vault_path
         self.crypto = HarpocratesCrypto()
 
-    def create_new_vault(self, master_password: str, secret_key: str):
-        """Inicializa una bóveda vacía con una nueva clave maestra y secret key."""
-        salt = os.urandom(16)
-        initial_data = {
-            "version": "1.0", 
+    def create_new_vault(self, master_password, secret_key):
+        """Crea una nueva bóveda vacía con estructura v1.2."""
+        empty_data = {
+            "version": "1.2",
+            "created_at": datetime.now().isoformat(),
             "entries": []
         }
+        self.save_vault(empty_data, master_password, secret_key)
+
+    def save_vault(self, data, master_password, secret_key):
+        """Cifra y guarda el diccionario de datos."""
+        json_str = json.dumps(data)
+        encrypted_data = self.crypto.encrypt_data(json_str, master_password, secret_key)
         
-        key = self.crypto.derive_key(master_password, secret_key, salt)
-        serialized_data = json.dumps(initial_data).encode('utf-8')
-        encrypted_payload = self.crypto.encrypt(serialized_data, key)
+        with open(self.vault_path, 'wb') as f:
+            f.write(encrypted_data)
+
+    def load_vault(self, master_password, secret_key):
+        """
+        Lee y descifra la bóveda.
+        INCLUYE MIGRACIÓN AUTOMÁTICA: Si detecta formato antiguo (lista), lo convierte a diccionario.
+        """
+        if not os.path.exists(self.vault_path):
+            raise FileNotFoundError("No se encuentra el archivo de la bóveda.")
+            
+        with open(self.vault_path, 'rb') as f:
+            encrypted_data = f.read()
+            
+        decrypted_json = self.crypto.decrypt_data(encrypted_data, master_password, secret_key)
+        data = json.loads(decrypted_json)
+
+        if isinstance(data, list):
+            data = {
+                "version": "1.2 (Migrated)",
+                "created_at": datetime.now().isoformat(),
+                "entries": data 
+            }
         
-        with open(self.file_path, 'wb') as f:
-            f.write(salt)
-            f.write(encrypted_payload)
+        return data
 
-    def load_vault(self, master_password: str, secret_key: str) -> dict:
-        """Lee y descifra la bóveda usando ambos factores."""
-        if not os.path.exists(self.file_path):
-            raise FileNotFoundError("La bóveda no existe.")
-
-        with open(self.file_path, 'rb') as f:
-            salt = f.read(16)
-            encrypted_payload = f.read()
-
-        key = self.crypto.derive_key(master_password, secret_key, salt)
-        
-        try:
-            decrypted_data = self.crypto.decrypt(encrypted_payload, key)
-            return json.loads(decrypted_data.decode('utf-8'))
-        except Exception:
-            raise ValueError("Autenticación fallida: Contraseña o Secret Key incorrectos.")
-
-    def save_vault(self, master_password: str, data: dict):
-        """Actualiza el contenido de la bóveda."""
-        self.create_new_vault(master_password) 
-
-    def add_entry(self, master_password: str, secret_key: str, title: str, username: str, password_str: str, url: str = ""):
-        """Añade una entrada, cifra y sobreescribe la bóveda de forma segura."""
+    def add_entry(self, master_password, secret_key, app_name, username, password, url="", notes=""):
+        """Añade una entrada asegurándose de usar la estructura de diccionario."""
         data = self.load_vault(master_password, secret_key)
-        
         new_entry = {
-            "id": str(uuid.uuid4()),
-            "title": title,
+            "title": app_name,
             "username": username,
-            "password": password_str,
+            "password": password,
             "url": url,
+            "notes": notes,
             "created_at": datetime.now().isoformat()
         }
+        if 'entries' not in data:
+            data['entries'] = []
+            
+        data['entries'].append(new_entry)
         
-        data["entries"].append(new_entry)
-        
-        self._save_and_rotate(master_password, secret_key, data)
-
-    def _save_and_rotate(self, master_password: str, secret_key: str, data: dict):
-        """Privado: Procesa el cifrado y guardado físico."""
-        salt = os.urandom(16)
-        serialized_data = json.dumps(data).encode('utf-8')
-        key = self.crypto.derive_key(master_password, secret_key, salt)
-        encrypted_payload = self.crypto.encrypt(serialized_data, key)
-        
-        with open(self.file_path, 'wb') as f:
-            f.write(salt)
-            f.write(encrypted_payload)
+        self.save_vault(data, master_password, secret_key)
+        return True
