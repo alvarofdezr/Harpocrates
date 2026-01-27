@@ -1,6 +1,7 @@
 import os
 import threading
 import time
+import re
 import pyperclip
 from dotenv import load_dotenv
 from core.vault import VaultManager
@@ -37,7 +38,23 @@ def secure_copy(data):
         threading.Thread(target=clear, daemon=True).start()
     except Exception as e:
         print(f"[!] Error al acceder al portapapeles: {e}")
-
+def check_strength(password):
+    """Analiza la fortaleza de la contraseña y devuelve un feedback visual."""
+    score = 0
+    if len(password) >= 12: score += 1
+    if len(password) >= 16: score += 1
+    if re.search(r"[A-Z]", password): score += 1
+    if re.search(r"[a-z]", password): score += 1
+    if re.search(r"\d", password): score += 1
+    if re.search(r"[!@#$%^&*(),.?\":{}|<>]", password): score += 1
+    
+    if score < 3:
+        return "\n[!] ALERTA: Contraseña DÉBIL. Se recomienda usar el generador."
+    elif score < 5:
+        return "\n[i] INFO: Contraseña DECENTE, pero podría mejorar."
+    else:
+        return "\n[✓] EXCELENTE: Fortaleza criptográfica alta."
+    
 def run_cli():
     os.system('cls' if os.name == 'nt' else 'clear')
     print(BANNER)
@@ -92,7 +109,8 @@ def run_cli():
                     print(f"[+] Password generado: {pw}")
                 else:
                     pw = input("Password: ")
-                
+                    print(check_strength(pw))
+                    
                 vault.add_entry(m_pass, s_key, title, user, pw, url)
                 print("[✓] Entrada cifrada y guardada correctamente.")
 
