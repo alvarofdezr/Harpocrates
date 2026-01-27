@@ -4,34 +4,46 @@
 
 ---
 
-# Harpocrates Vault v1.0
-[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Security: Argon2id](https://img.shields.io/badge/Security-Argon2id-red)](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)
+# 🔐 Harpocrates Vault v2.0
+> **Zero-Knowledge Password Manager | Argon2id + AES-256-GCM**
+![Security Status](https://github.com/alvarofdezrTU_/Harpocrates/actions/workflows/security-test.yml/badge.svg)
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
+![License](https://img.shie2ds.io/badge/License-MIT-green)
+![Release](https://img.shields.io/badge/Release-v1.2.0-purple)
 
-**Harpocrates** is a high-security, local-first password manager named after the Greek god of silence and secrets. It implements a **Zero-Knowledge** architecture to ensure that your data remains private even if the storage medium is compromised.
+**Harpocrates** is a robust Command Line Interface (CLI) password manager built for maximum security and privacy. It features a **Zero-Knowledge** architecture, meaning the application never stores or knows your master password; it is only used to derive encryption keys in volatile memory.
+
+---
+## 🚀 What's New in v1.2.0
+- **Universal Import:** Seamlessly migrate passwords from **Bitwarden** or **Google Chrome** (.csv exports).
+- **Automated Auditing:** Integrated CI/CD pipeline with GitHub Actions and `Bandit` security linting.
+- **Extended Storage:** Support for Notes, URLs, and TOTP recovery codes.
+- **Crypto Engine v1.2:** Hardened implementation with strict Salt/Nonce binding.
+
+---
 
 ## 🛡️ Security Architecture
 
-Harpocrates goes beyond standard security by implementing a dual-factor key derivation process:
+Security is not an afterthought; it's the core. Harpocrates uses industry-standard cryptography, avoiding "security by obscurity."
 
-1.  **Key Derivation:** Uses **Argon2id** (Winner of the Password Hashing Competition).
-    * `Memory Cost`: 64MB
-    * `Time Cost`: 4 iterations
-    * `Parallelism`: 4 threads
-2.  **Dual-Entropy:** Requires both a **Master Password** and a 128-bit **Secret Key**.
-3.  **Authenticated Encryption:** **AES-256-GCM** (Galois/Counter Mode) to ensure both confidentiality and integrity (tamper-proof).
-4.  **Local-First:** No data ever leaves your machine in plaintext.
+| Component | Technology | Description |
+|-----------|------------|-------------|
+| **KDF** (Key Derivation) | **Argon2id** | Memory-hard function resistant to GPU/ASIC brute-force attacks (OWASP Recommended). |
+| **Encryption** | **AES-256-GCM** | Authenticated Encryption (AEAD). Ensures both confidentiality and integrity. |
+| **RNG** | `os.urandom` | CSPRNG (Cryptographically Secure Pseudo-Random Number Generator). |
+| **Memory** | **Volatile** | Keys are decrypted only in RAM and cleared upon exit. |
 
-## ✨ Key Features
-
-- ✅ **Secure Search:** Filter credentials instantly without compromising the encrypted source.
-- ✅ **Entropy-Rich Generator:** Cryptographically secure password generation using `secrets`.
-- ✅ **Binary Vault:** Custom `.hpro` format with automatic Salt and Nonce rotation.
-- ✅ **Memory Sanitation:** Basic GC-based RAM wiping after session closure.
+---
 
 ## 🚀 Installation & Usage
 
+### Option A: Binary (Windows)
+No Python required. Plug and play.
+1. Go to [Releases](../../releases).
+2. Download the latest `Harpocrates.exe`.
+3. Run it from your terminal or CMD.
+
+### Option B: From Source (Developers)
 1. **Clone and Setup:**
    ```bash
    git clone [https://github.com/alvarofdezr/Harpocrates.git](https://github.com/alvarofdezr/Harpocrates.git)
@@ -44,10 +56,35 @@ Harpocrates goes beyond standard security by implementing a dual-factor key deri
     ```bash
     python main.py
     ```
+3. **📖 Usage:**
+    ```plaintext
+    
+    ██╗  ██╗ █████╗ ██████╗ ██████╗  ██████╗  ██████╗██████╗  █████╗ ████████╗███████╗███████╗
+    ██║  ██║██╔══██╗██╔══██╗██╔══██╗██╔═══██╗██╔════╝██╔══██╗██╔══██╗╚══██╔══╝██╔════╝██╔════╝
+    ███████║███████║██████╔╝██████╔╝██║   ██║██║     ██████╔╝███████║   ██║   █████╗  ███████╗
+    ██╔══██║██╔══██║██╔══██╗██╔═══╝ ██║   ██║██║     ██╔══██╗██╔══██║   ██║   ██╔══╝  ╚════██║
+    ██║  ██║██║  ██║██║  ██║██║     ╚██████╔╝╚██████╗██║  ██║██║  ██║   ██║   ███████╗███████║
+    ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝      ╚═════╝  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝
+                                    [ SILENCE IS SECURITY ]
+        ---------------------------------------------------------------------------------------
+            ARCHITECTURE: Zero-Knowledge | ALGORITHMS: Argon2id + AES-256-GCM (v1.2)
+        ---------------------------------------------------------------------------------------
 
-3. **Workflow:**
-* First Run: Enter a Master Password. The system will generate your Secret Key. SAVE IT OFFLINE.
-* Subsequent Access: Both credentials will be required to decrypt the vault.
+    [?] Master Password: 
+    [?] Secret Key: 
+
+    [✓] Access Granted: Vault decrypted in memory.
+
+    ----------------------------- MENÚ PRINCIPAL ------------------------------ 
+    [1] List     -> View all accounts and securely copy passwords.
+    [2] Add      -> Store a new credential (includes real-time strength meter).
+    [3] Search   -> Deep search by service name or username.
+    [4] Generate -> Create high-entropy passwords (32 chars).
+    [5] Import   -> Batch import from CSV (Bitwarden/Chrome).
+    [6] Exit     -> Clears memory buffers and closes the application.
+
+    Harpocrates >
+    ```
 
 ## 🔄 Data Flow (Zero-Knowledge)
 
@@ -89,13 +126,33 @@ Harpocrates goes beyond standard security by implementing a dual-factor key deri
   - `pyperclip` (Secure Clipboard)
 </details>
 
+## 🤖 CI/CD & Quality Assurance
+
+This project leverages GitHub Actions to ensure stability:
+
+- **Unit Tests**: Verifies key generator integrity.
+
+- **Security Linting**: Static analysis via Bandit to detect potential vulnerabilities.
+
+- **Build Pipeline**: Automated artifact generation.
+
+## Important: Migration Notice
+
+If you are upgrading from v1.0/v1.1, please note that the database format has changed for security reasons.
+
+- Delete your old vault.hpro.
+
+- Launch v1.2.0 to generate a new vault with the updated crypto engine.
+d
+- Import your passwords using option [5].
+
 ## 📜 License
 
 This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
 
 ## ⚠️ Disclaimer
 
-This project is for educational purposes in the field of cybersecurity. Use at your own risk.
+This software is provided "as is", without warranty of any kind. The user is solely responsible for the custody of their Master Password and Secret Key. If both are lost, your data is mathematically unrecoverable.
 
 ---
 
