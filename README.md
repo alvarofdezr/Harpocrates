@@ -3,37 +3,35 @@
 </p>
 
 ---
-
-# 🔐 Harpocrates Vault v2.0
+# 🔐 Harpocrates Vault v1.3.0
 > **Zero-Knowledge Password Manager | Argon2id + AES-256-GCM**
-![Security Status](https://github.com/alvarofdezrTU_/Harpocrates/actions/workflows/security-test.yml/badge.svg)
+
+![Security Status](https://github.com/alvarofdezr/Harpocrates/actions/workflows/security-test.yml/badge.svg)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
-![License](https://img.shie2ds.io/badge/License-MIT-green)
-![Release](https://img.shields.io/badge/Release-v1.2.0-purple)
+![License](https://img.shields.io/badge/License-MIT-green)
+![Release](https://img.shields.io/badge/Release-v1.3.0-blue)
 
-**Harpocrates** is a robust Command Line Interface (CLI) password manager built for maximum security and privacy. It features a **Zero-Knowledge** architecture, meaning the application never stores or knows your master password; it is only used to derive encryption keys in volatile memory.
+**Harpocrates** is a robust Command Line Interface (CLI) password manager built for maximum security and privacy. It features a **Zero-Knowledge** architecture, meaning the application never stores or knows your master password.
 
----
-## 🚀 What's New in v1.2.0
+
+## 🚀 What's New in v1.3.0
+- **Full Management (CRUD):** You can now **Edit** and **Delete** entries directly from the CLI.
+- **Snapshot Backups:** Create instant local backups of your vault (`.hpro`) before making critical changes.
 - **Universal Import:** Seamlessly migrate passwords from **Bitwarden** or **Google Chrome** (.csv exports).
-- **Automated Auditing:** Integrated CI/CD pipeline with GitHub Actions and `Bandit` security linting.
-- **Extended Storage:** Support for Notes, URLs, and TOTP recovery codes.
-- **Crypto Engine v1.2:** Hardened implementation with strict Salt/Nonce binding.
+- **Crypto Engine:** Hardened Argon2id implementation resistant to GPU brute-force attacks.
 
----
+
 
 ## 🛡️ Security Architecture
 
-Security is not an afterthought; it's the core. Harpocrates uses industry-standard cryptography, avoiding "security by obscurity."
+Harpocrates relies on industry-standard cryptography:
 
 | Component | Technology | Description |
 |-----------|------------|-------------|
-| **KDF** (Key Derivation) | **Argon2id** | Memory-hard function resistant to GPU/ASIC brute-force attacks (OWASP Recommended). |
-| **Encryption** | **AES-256-GCM** | Authenticated Encryption (AEAD). Ensures both confidentiality and integrity. |
-| **RNG** | `os.urandom` | CSPRNG (Cryptographically Secure Pseudo-Random Number Generator). |
-| **Memory** | **Volatile** | Keys are decrypted only in RAM and cleared upon exit. |
+| **KDF** | **Argon2id** | Memory-hard function (64MB cost) resistant to brute-force. |
+| **Encryption** | **AES-256-GCM** | Authenticated Encryption (AEAD). Guarantees confidentiality and integrity. |
+| **Storage** | **Local File** | Your vault is an encrypted binary file (`vault.hpro`) that only you control. |
 
----
 
 ## 🚀 Installation & Usage
 
@@ -46,7 +44,7 @@ No Python required. Plug and play.
 ### Option B: From Source (Developers)
 1. **Clone and Setup:**
    ```bash
-   git clone [https://github.com/alvarofdezr/Harpocrates.git](https://github.com/alvarofdezr/Harpocrates.git)
+   git clone https://github.com/alvarofdezr/Harpocrates.git
    cd Harpocrates
    python -m venv venv
    # Activate venv
@@ -67,7 +65,7 @@ No Python required. Plug and play.
     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝      ╚═════╝  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝
                                     [ SILENCE IS SECURITY ]
         ---------------------------------------------------------------------------------------
-            ARCHITECTURE: Zero-Knowledge | ALGORITHMS: Argon2id + AES-256-GCM (v1.2)
+            ARCHITECTURE: Zero-Knowledge | ALGORITHMS: Argon2id + AES-256-GCM (v1.3)
         ---------------------------------------------------------------------------------------
 
     [?] Master Password: 
@@ -75,13 +73,14 @@ No Python required. Plug and play.
 
     [✓] Access Granted: Vault decrypted in memory.
 
-    ----------------------------- MENÚ PRINCIPAL ------------------------------ 
-    [1] List     -> View all accounts and securely copy passwords.
-    [2] Add      -> Store a new credential (includes real-time strength meter).
-    [3] Search   -> Deep search by service name or username.
-    [4] Generate -> Create high-entropy passwords (32 chars).
-    [5] Import   -> Batch import from CSV (Bitwarden/Chrome).
-    [6] Exit     -> Clears memory buffers and closes the application.
+    ----------------------------- Main Menu (v1.3) ------------------------------ 
+    [1] List      -> View accounts. Select an ID to Copy Password, Edit, or Delete.
+    [2] Add       -> Store a new credential (includes strength meter).
+    [3] Search    -> Deep search by service name or username.
+    [4] Generate  -> Create high-entropy passwords (32 chars).
+    [5] Import    -> Batch import from CSV.
+    [6] Exit      -> Clears memory buffers and closes.
+    [7] Backup    -> Create a timestamped copy of your vault (e.g., backup_20241027.hpro).
 
     Harpocrates >
     ```
