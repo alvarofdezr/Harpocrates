@@ -3,7 +3,7 @@
 </p>
 
 ---
-# 🔐 Harpocrates Vault v1.3.0
+# 🔐 Harpocrates Vault v1.4.0
 > **Zero-Knowledge Password Manager | Argon2id + AES-256-GCM**
 
 ![Security Status](https://github.com/alvarofdezr/Harpocrates/actions/workflows/security-test.yml/badge.svg)
@@ -14,11 +14,11 @@
 **Harpocrates** is a robust Command Line Interface (CLI) password manager built for maximum security and privacy. It features a **Zero-Knowledge** architecture, meaning the application never stores or knows your master password.
 
 
-## 🚀 What's New in v1.3.0
-- **Full Management (CRUD):** You can now **Edit** and **Delete** entries directly from the CLI.
-- **Snapshot Backups:** Create instant local backups of your vault (`.hpro`) before making critical changes.
-- **Universal Import:** Seamlessly migrate passwords from **Bitwarden** or **Google Chrome** (.csv exports).
-- **Crypto Engine:** Hardened Argon2id implementation resistant to GPU brute-force attacks.
+## 🚀 What's New in v1.4.0 (The Auditor Update)
+- **👁️ Forensic Audit Log (Black Box):** An encrypted, immutable log tracks every `LOGIN`, `ACCESS`, `UPDATE`, and `BACKUP` event inside the vault.
+- **☠️ Sentinel Scanner (HIBP):** Integrates with *HaveIBeenPwned* using **K-Anonymity**. It checks if your passwords are leaked without ever sending them to the internet.
+- **🧠 Smart Import:** Merges CSVs (Bitwarden/Chrome) detecting duplicates and reporting conflicts automatically.
+- **🛡️ Active Defense:** Implemented Rate Limiting to neutralize brute-force automation.
 
 
 
@@ -28,9 +28,10 @@ Harpocrates relies on industry-standard cryptography:
 
 | Component | Technology | Description |
 |-----------|------------|-------------|
-| **KDF** | **Argon2id** | Memory-hard function (64MB cost) resistant to brute-force. |
+| **KDF** | **Argon2id** | Configured with 64MB RAM cost to resist GPU cracking farms. |
 | **Encryption** | **AES-256-GCM** | Authenticated Encryption (AEAD). Guarantees confidentiality and integrity. |
-| **Storage** | **Local File** | Your vault is an encrypted binary file (`vault.hpro`) that only you control. |
+| **Audit** | **Encrypted Logs** | Event logs are stored *inside* the encrypted blob. Only the owner can read the history. |
+| **Privacy** | **K-Anonymity** | Uses SHA-1 prefixing (5 chars) to query breach databases anonymously. |
 
 
 ## 🚀 Installation & Usage
@@ -64,16 +65,16 @@ No Python required. Plug and play.
     ██║  ██║██║  ██║██║  ██║██║     ╚██████╔╝╚██████╗██║  ██║██║  ██║   ██║   ███████╗███████║
     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝      ╚═════╝  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝
                                     [ SILENCE IS SECURITY ]
-        ---------------------------------------------------------------------------------------
-            ARCHITECTURE: Zero-Knowledge | ALGORITHMS: Argon2id + AES-256-GCM (v1.3)
-        ---------------------------------------------------------------------------------------
+    ------------------------------------------------------------------------------------------
+            ARCHITECTURE: Zero-Knowledge | ALGORITHMS: Argon2id + AES-256-GCM (v1.4.0)
+    ------------------------------------------------------------------------------------------
 
     [?] Master Password: 
     [?] Secret Key: 
 
     [✓] Access Granted: Vault decrypted in memory.
 
-    ----------------------------- Main Menu (v1.3) ------------------------------ 
+    ----------------------------- Main Menu (v1.4) ------------------------------ 
     [1] List      -> View accounts. Select an ID to Copy Password, Edit, or Delete.
     [2] Add       -> Store a new credential (includes strength meter).
     [3] Search    -> Deep search by service name or username.
@@ -81,10 +82,17 @@ No Python required. Plug and play.
     [5] Import    -> Batch import from CSV.
     [6] Exit      -> Clears memory buffers and closes.
     [7] Backup    -> Create a timestamped copy of your vault (e.g., backup_20241027.hpro).
+    [8] Audit Log    -> Inspect the internal Forensic Event History.
+    [9] HIBP Scan    -> Check your vault against 8 billion leaked passwords.
 
     Harpocrates >
     ```
 
+## 🚨 Security testing
+You can verify the resistance of the vault against brute-force attacks by running the included simulation script:
+```bash
+python tests/attack_simulation.py
+```
 ## 🔄 Data Flow (Zero-Knowledge)
 
 1. **Input:** User provides Master Password + Secret Key.
@@ -119,7 +127,8 @@ No Python required. Plug and play.
 <summary><b>System Requirements</b></summary>
 
 - **Python Version:** 3.8 or higher
-- **Dependencies:** - `cryptography` (Engine)
+- **Dependencies:** 
+  - `cryptography` (Engine)
   - `argon2-cffi` (Hashing)
   - `python-dotenv` (Configuration)
   - `pyperclip` (Secure Clipboard)
