@@ -13,7 +13,7 @@ class PasswordAuditor:
             -1: Error de conexión.
         """
 
-        sha1_password = hashlib.sha1(password.encode('utf-8')).hexdigest().upper()
+        sha1_password = hashlib.sha1(password.encode('utf-8')).hexdigest().upper() #nosec
         prefix, suffix = sha1_password[:5], sha1_password[5:]
         
         url = f"https://api.pwnedpasswords.com/range/{prefix}"
