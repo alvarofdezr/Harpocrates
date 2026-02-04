@@ -3,16 +3,18 @@
 </p>
 
 ---
-# 🔐 Harpocrates Vault v1.4.0
+# 🔐 Harpocrates Vault v1.5.0
 > **Zero-Knowledge Password Manager | Argon2id + AES-256-GCM**
 
 ![Security Status](https://github.com/alvarofdezr/Harpocrates/actions/workflows/security-test.yml/badge.svg)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
-![Release](https://img.shields.io/badge/Release-v1.4.0-blue)
+![Release](https://img.shields.io/badge/Release-v1.5.0-blue)
 
 **Harpocrates** is a robust Command Line Interface (CLI) password manager built for maximum security and privacy. It features a **Zero-Knowledge** architecture, meaning the application never stores or knows your master password.
 
+## 🚀 What's New in v1.5.0 (The Hunter Update)
+> *"Knowledge is power. Privacy is control."*
 
 - **🕵️‍♂️ OSINT Identity Tracer:** New module (Option 10) to track usernames and emails across **500+ platforms**.
     - **Sherlock Engine:** Dynamically loads the latest OSINT database from the Sherlock Project.
@@ -21,7 +23,6 @@
         - **Username:** Deep scans social media, developer platforms, and forums.
     - **Forensic Reports:** Exports findings to JSON for external analysis.
 - **🛡️ Previous Features (v1.4):** HIBP Sentinel (Password Breach Scanner), Smart CSV Import, Black Box Audit Logging.
-
 
 
 ## 🛡️ Security Architecture
@@ -76,7 +77,7 @@ No Python required. Plug and play.
 
     [✓] Access Granted: Vault decrypted in memory.
 
-    ----------------------------- Main Menu (v1.4) ------------------------------ 
+    ----------------------------- Main Menu (v1.5) ------------------------------ 
     [1] List      -> View accounts. Select an ID to Copy Password, Edit, or Delete.
     [2] Add       -> Store a new credential (includes strength meter).
     [3] Search    -> Deep search by service name or username.
@@ -153,7 +154,7 @@ If you are upgrading from v1.0/v1.1, please note that the database format has ch
 
 - Delete your old vault.hpro.
 
-- Launch v1.2.0 to generate a new vault with the updated crypto engine.
+- Launch v1.5.0 to generate a new vault with the updated crypto engine.
 
 - Import your passwords using option [5].
 

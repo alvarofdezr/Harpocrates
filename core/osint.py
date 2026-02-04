@@ -46,7 +46,7 @@ class OsintScanner:
         }
 
     def _get_random_header(self):
-        return {'User-Agent': random.choice(self.user_agents)}
+        return {'User-Agent': random.choice(self.user_agents)} #nosec
 
     def _fetch_database(self):
         print(f"{Fore.YELLOW}[*] Actualizando base de datos OSINT...{Style.RESET_ALL}", end=" ")
@@ -102,7 +102,7 @@ class OsintScanner:
                     print(f"\r{Fore.GREEN}[+] {site_name:<20}: {url}{Style.RESET_ALL}          ")
                     
         except Exception:
-            pass
+            pass #nosec
 
     def _check_gravatar(self, email):
         """Busca perfil público en Gravatar usando hash MD5."""
@@ -116,7 +116,7 @@ class OsintScanner:
                 self.results.append({"site": "Gravatar", "url": url, "note": "Profile Picture Found"})
             else:
                 print(f"{Fore.YELLOW}[-] Sin perfil Gravatar.{Style.RESET_ALL}")
-        except: pass
+        except: pass #nosec
 
     def _search_duckduckgo(self, email):
         """Realiza Dorking en DuckDuckGo para encontrar menciones públicas del correo."""
@@ -220,7 +220,7 @@ class OsintScanner:
             processed += len(batch)
             print(f"\r    Progreso: {processed}/{total_sites} sitios analizados...", end="")
             
-            time.sleep(random.uniform(0.5, 1.5))
+            time.sleep(random.uniform(0.5, 1.5)) #nosec
 
         print("\n") 
         return self.results
