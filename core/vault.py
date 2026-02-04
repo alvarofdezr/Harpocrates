@@ -9,9 +9,9 @@ class VaultManager:
         self.crypto = HarpocratesCrypto()
 
     def create_new_vault(self, master_password, secret_key):
-        """Crea bóveda v1.4 con soporte para Logs."""
+        """Crea bóveda v1.5 con soporte para Logs."""
         empty_data = {
-            "version": "1.4",
+            "version": "1.5",
             "created_at": datetime.now().isoformat(),
             "entries": [],
             "logs": [] 
@@ -35,10 +35,10 @@ class VaultManager:
         decrypted_json = self.crypto.decrypt_data(encrypted_data, master_password, secret_key)
         data = json.loads(decrypted_json)
 
-        # --- MIGRACIÓN AUTOMÁTICA v1.3 -> v1.4 ---
-        if isinstance(data, dict) and 'logs' not in data:
-            data['logs'] = []
-            self._append_log(data, "SYSTEM", "Upgraded to v1.4 (Audit Logs Enabled)")
+        # --- MIGRACIÓN AUTOMÁTICA v1.4 -> v1.5 ---
+        if isinstance(data, dict) and data.get("version") == "1.4":
+            data['version'] = "1.5"
+            self._append_log(data, "SYSTEM", "Upgraded to v1.5 (Enhanced Security)")
             self.save_vault(data, master_password, secret_key)
             
         return data

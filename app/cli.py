@@ -13,7 +13,7 @@ from core.crypto import HarpocratesCrypto
 from core.generator import PasswordGenerator
 from core.importer import import_from_csv
 from core.auditor import PasswordAuditor  
-
+from core.osint import OsintScanner 
 load_dotenv()
 
 BANNER = r"""
@@ -25,7 +25,7 @@ BANNER = r"""
     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝      ╚═════╝  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝
                                     [ SILENCE IS SECURITY ]
     ------------------------------------------------------------------------------------------
-            ARCHITECTURE: Zero-Knowledge | ALGORITHMS: Argon2id + AES-256-GCM (v1.4.0)
+            ARCHITECTURE: Zero-Knowledge | ALGORITHMS: Argon2id + AES-256-GCM (v1.5.0)
     ------------------------------------------------------------------------------------------
 """
 
@@ -38,7 +38,8 @@ def secure_copy(data):
             if pyperclip.paste() == data:
                 pyperclip.copy("")
         threading.Thread(target=clear, daemon=True).start()
-    except: pass
+    except Exception:
+        print(Fore.YELLOW + "[!] No se pudo acceder al portapapeles." + Style.RESET_ALL)
 
 def check_strength(pw):
     s=0
@@ -50,7 +51,7 @@ def check_strength(pw):
     return Fore.GREEN + "FUERTE" + Style.RESET_ALL
 
 def entry_action_menu(vault, m_pass, s_key, entry, index):
-    """Submenú de gestión v1.3"""
+    """Submenú de gestión v1.5.0"""
     while True:
         print(f"\nServicio: {Fore.CYAN}{entry['title']}{Style.RESET_ALL} | User: {entry['username']}")
         if entry.get('notes'): print(f"Notas: {Fore.YELLOW}{entry['notes']}{Style.RESET_ALL}")
@@ -101,11 +102,11 @@ def run_cli():
         print(Fore.GREEN + "\n[✓] Acceso Concedido." + Style.RESET_ALL)
         
         while True:
-            print(f"\n{'-'*30} MENÚ v1.4.0 {'-'*30}")
-            print("1. Listar       2. Añadir      3. Buscar")
-            print("4. Generar      5. Importar    6. Salir")
-            print("7. Backup       8. Ver Logs    9. Escáner HIBP")
-            
+            print(f"\n{'-'*30} MENÚ v1.5.0 {'-'*40}")
+            print("1.  Listar       2. Añadir      3. Buscar")
+            print("4.  Generar      5. Importar    6. Salir")
+            print("7.  Backup       8. Ver Logs    9. Escáner HIBP")
+            print("10. OSINT Identity Tracer")
             op = input("\n> ").strip()
             
             if op == '1':
@@ -186,6 +187,30 @@ def run_cli():
                 else:
                     vault.add_audit_event(m_pass, s_key, "HIBP_CLEAN", "Full scan passed successfully")
                     print(Fore.GREEN + "\n[✓] Tu bóveda es segura." + Style.RESET_ALL)
+            # --- OPCIÓN 10: OSINT (Identity Tracer) ---
+            elif op == '10':
+                scanner = OsintScanner()
+                print(Fore.YELLOW + "\n--- RECONOCIMIENTO DE HUELLA DIGITAL (OSINT) ---" + Style.RESET_ALL)
+                target_user = input("Objetivo (Usuario o Email): ").strip()
+                
+                if target_user:
+                    found = scanner.scan_target(target_user)
+                    
+                    print("-" * 50)
+                    if found:
+                        print(Fore.GREEN + f"[!] ÉXITO: Se encontraron {len(found)} coincidencias." + Style.RESET_ALL)
+                        log_msg = f"OSINT Scan '{target_user}': {len(found)} matches found."
+                        vault.add_audit_event(m_pass, s_key, "OSINT_HIT", log_msg)
+
+                        if input(f"\n{Fore.CYAN}¿Generar reporte forense (JSON)? (s/n): {Style.RESET_ALL}").lower() == 's':
+                            fname = scanner.save_report(target_user)
+                            if fname:
+                                print(f"{Fore.GREEN}[✓] Reporte guardado en: {fname}{Style.RESET_ALL}")
+                                vault.add_audit_event(m_pass, s_key, "OSINT_EXPORT", f"Report generated: {fname}")
+                    else:
+                        print(Fore.YELLOW + "[i] Objetivo limpio. No se encontraron perfiles públicos (Top 100)." + Style.RESET_ALL)
+                        vault.add_audit_event(m_pass, s_key, "OSINT_CLEAN", f"Scanned '{target_user}'. No matches.")
+                    print("-" * 50)
 
     except Exception as e:
         print(Fore.RED + f"\n[!] Error/Auth Fallida: {e}" + Style.RESET_ALL)

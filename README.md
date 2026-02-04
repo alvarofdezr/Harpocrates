@@ -9,16 +9,18 @@
 ![Security Status](https://github.com/alvarofdezr/Harpocrates/actions/workflows/security-test.yml/badge.svg)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
-![Release](https://img.shields.io/badge/Release-v1.3.0-blue)
+![Release](https://img.shields.io/badge/Release-v1.4.0-blue)
 
 **Harpocrates** is a robust Command Line Interface (CLI) password manager built for maximum security and privacy. It features a **Zero-Knowledge** architecture, meaning the application never stores or knows your master password.
 
 
-## 🚀 What's New in v1.4.0 (The Auditor Update)
-- **👁️ Forensic Audit Log (Black Box):** An encrypted, immutable log tracks every `LOGIN`, `ACCESS`, `UPDATE`, and `BACKUP` event inside the vault.
-- **☠️ Sentinel Scanner (HIBP):** Integrates with *HaveIBeenPwned* using **K-Anonymity**. It checks if your passwords are leaked without ever sending them to the internet.
-- **🧠 Smart Import:** Merges CSVs (Bitwarden/Chrome) detecting duplicates and reporting conflicts automatically.
-- **🛡️ Active Defense:** Implemented Rate Limiting to neutralize brute-force automation.
+- **🕵️‍♂️ OSINT Identity Tracer:** New module (Option 10) to track usernames and emails across **500+ platforms**.
+    - **Sherlock Engine:** Dynamically loads the latest OSINT database from the Sherlock Project.
+    - **Stealth Mode:** Implements **Jitter** (random delays) and User-Agent rotation to evade WAFs and bot detection without needing proxies.
+    - **Hybrid Intelligence:** - **Email:** Checks Gravatar presence and performs "Dorking" on DuckDuckGo to find public leaks/posts.
+        - **Username:** Deep scans social media, developer platforms, and forums.
+    - **Forensic Reports:** Exports findings to JSON for external analysis.
+- **🛡️ Previous Features (v1.4):** HIBP Sentinel (Password Breach Scanner), Smart CSV Import, Black Box Audit Logging.
 
 
 
@@ -66,7 +68,7 @@ No Python required. Plug and play.
     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝      ╚═════╝  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝
                                     [ SILENCE IS SECURITY ]
     ------------------------------------------------------------------------------------------
-            ARCHITECTURE: Zero-Knowledge | ALGORITHMS: Argon2id + AES-256-GCM (v1.4.0)
+            ARCHITECTURE: Zero-Knowledge | ALGORITHMS: Argon2id + AES-256-GCM (v1.5.0)
     ------------------------------------------------------------------------------------------
 
     [?] Master Password: 
@@ -84,6 +86,7 @@ No Python required. Plug and play.
     [7] Backup    -> Create a timestamped copy of your vault (e.g., backup_20241027.hpro).
     [8] Audit Log    -> Inspect the internal Forensic Event History.
     [9] HIBP Scan    -> Check your vault against 8 billion leaked passwords.
+    [10] OSINT Identity Tracer -> Track usernames and emails across 500+ platforms.
 
     Harpocrates >
     ```
@@ -151,7 +154,7 @@ If you are upgrading from v1.0/v1.1, please note that the database format has ch
 - Delete your old vault.hpro.
 
 - Launch v1.2.0 to generate a new vault with the updated crypto engine.
-d
+
 - Import your passwords using option [5].
 
 ## 📜 License
