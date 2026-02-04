@@ -24,7 +24,6 @@
     - **Forensic Reports:** Exports findings to JSON for external analysis.
 - **🛡️ Previous Features (v1.4):** HIBP Sentinel (Password Breach Scanner), Smart CSV Import, Black Box Audit Logging.
 
-
 ## 🛡️ Security Architecture
 
 Harpocrates relies on industry-standard cryptography:
