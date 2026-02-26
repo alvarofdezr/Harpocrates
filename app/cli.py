@@ -24,7 +24,7 @@ BANNER = r"""
     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝      ╚═════╝  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝
                                     [ SILENCE IS SECURITY ]
     ------------------------------------------------------------------------------------------
-            ARCHITECTURE: Zero-Knowledge | ALGORITHMS: Argon2id + AES-256-GCM (v1.5.0)
+            ARCHITECTURE: Zero-Knowledge | ALGORITHMS: Argon2id + AES-256-GCM (v1.5.1)
     ------------------------------------------------------------------------------------------
 """
 
@@ -84,7 +84,7 @@ def entry_action_menu(vault, m_pass, s_key, entry, index):
                 print(Fore.GREEN + "[✓] Updated." + Style.RESET_ALL)
                 break
         elif op == '3':
-            if input("Delete? (y/n): ") == 's':
+            if input("Delete? (y/n): ") == 'y':
                 vault.delete_entry(m_pass, s_key, index)
                 print(Fore.RED + "[✓] Deleted." + Style.RESET_ALL)
                 return True
@@ -117,7 +117,7 @@ def run_cli():
         print(Fore.GREEN + "\n[✓] Access Granted." + Style.RESET_ALL)
         
         while True:
-            print(f"\n{'-'*30} MENU v1.5.1 {'-'*40}")
+            print(f"\n{'-'*40} MENU v1.5.1 {'-'*40}")
             print("1.  List         2. Add         3. Search")
             print("4.  Generate     5. Import      6. Exit")
             print("7.  Backup       8. View Logs   9. HIBP Scanner")
@@ -137,7 +137,7 @@ def run_cli():
             elif op == '2':
                 t = input("Service: ")
                 u = input("Username: ")
-                p = PasswordGenerator.generate(24) if input("Auto-generate? (y/n): ")=='s' else input("Password: ")
+                p = PasswordGenerator.generate(24) if input("Auto-generate? (y/n): ")=='y' else input("Password: ")
                 print(check_strength(p))
                 vault.add_entry(m_pass, s_key, t, u, p, input("URL: "), input("Notes: "))
                 print("[✓] Saved.")
@@ -155,18 +155,16 @@ def run_cli():
             elif op == '4':
                 pw = PasswordGenerator.generate(32)
                 print(f"Password: {Fore.GREEN}{pw}{Style.RESET_ALL}")
-                if input("Copy? (y/n): ")=='s': secure_copy(pw)
+                if input("Copy? (y/n): ")=='y': secure_copy(pw)
 
             elif op == '5':
                 path = input("CSV File: ").strip('"')
-                if input("Import? (y/n): ")=='s':
+                if input("Import? (y/n): ")=='y':
                     qty, msg = import_from_csv(path, vault, s_key, m_pass)
                     print(msg)
                     if qty > 0: vault.add_audit_event(m_pass, s_key, "IMPORT", f"Imported {qty} items")
 
             elif op == '6': 
-                del m_pass
-                del s_key
                 print("\n[!] Closing session securely...")
                 break
 

@@ -1,23 +1,27 @@
 import unittest
 import os
 import shutil
-import json
+import csv
 import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.vault import VaultManager
 from core.crypto import HarpocratesCrypto
+from core.generator import PasswordGenerator
+from core.auditor import PasswordAuditor
+from core.importer import import_from_csv
 
 class TestHarpocratesCore(unittest.TestCase):
 
     def setUp(self):
         """
-        Se ejecuta ANTES de cada test.
-        Prepara un entorno limpio: una bóveda nueva y claves frescas.
+        Runs BEFORE each test.
+        Prepares a clean environment: a fresh vault and new keys.
         """
         self.test_vault_file = "test_vault.hpro"
         self.test_backup_file = "test_vault_backup.hpro"
+        self.test_csv_file = "test_import.csv"
         self.m_pass = "TestPass123!"
         
         self.crypto = HarpocratesCrypto()
@@ -28,27 +32,25 @@ class TestHarpocratesCore(unittest.TestCase):
 
     def tearDown(self):
         """
-        Se ejecuta DESPUÉS de cada test.
-        Limpia el desastre: borra los archivos creados.
+        Runs AFTER each test.
+        Cleans up the mess: deletes all temporary files.
         """
-        if os.path.exists(self.test_vault_file):
-            os.remove(self.test_vault_file)
-        if os.path.exists(self.test_backup_file):
-            os.remove(self.test_backup_file)
+        for file in [self.test_vault_file, self.test_backup_file, self.test_csv_file]:
+            if os.path.exists(file):
+                os.remove(file)
 
     def test_1_add_entry(self):
-        """Prueba que se pueden añadir y leer entradas."""
-        self.vault.add_entry(self.m_pass, self.s_key, "Netflix", "user@test.com", "pass123", "http://netflix.com", "Mis notas")
+        """Tests that entries can be added and read from memory."""
+        self.vault.add_entry(self.m_pass, self.s_key, "Netflix", "user@test.com", "pass123", "http://netflix.com", "My notes")
         
-        data = self.vault.load_vault(self.m_pass, self.s_key)
-        entry = data['entries'][0]
+        entry = self.vault.data['entries'][0]
         
         self.assertEqual(entry['title'], "Netflix")
         self.assertEqual(entry['password'], "pass123")
-        self.assertEqual(entry['notes'], "Mis notas")
+        self.assertEqual(entry['notes'], "My notes")
 
     def test_2_update_entry(self):
-        """Prueba la edición de entradas."""
+        """Tests updating entries."""
         self.vault.add_entry(self.m_pass, self.s_key, "Facebook", "old_user", "old_pass")
         
         changes = {
@@ -57,30 +59,26 @@ class TestHarpocratesCore(unittest.TestCase):
         }
         self.vault.update_entry(self.m_pass, self.s_key, 0, changes)
 
-        data = self.vault.load_vault(self.m_pass, self.s_key)
-        updated_entry = data['entries'][0]
+        updated_entry = self.vault.data['entries'][0]
         
         self.assertEqual(updated_entry['username'], "new_user_pro")
         self.assertEqual(updated_entry['title'], "Facebook")
 
     def test_3_delete_entry(self):
-        """Prueba el borrado de entradas."""
+        """Tests deleting entries."""
         self.vault.add_entry(self.m_pass, self.s_key, "Twitter", "u1", "p1")
         self.vault.add_entry(self.m_pass, self.s_key, "Google", "u2", "p2")
         
         self.vault.delete_entry(self.m_pass, self.s_key, 0)
         
-        data = self.vault.load_vault(self.m_pass, self.s_key)
-        
-        self.assertEqual(len(data['entries']), 1)
-        self.assertEqual(data['entries'][0]['title'], "Google")
+        self.assertEqual(len(self.vault.data['entries']), 1)
+        self.assertEqual(self.vault.data['entries'][0]['title'], "Google")
 
     def test_4_backup_mechanism(self):
-        """Prueba crítica: Simula el sistema de backup."""
+        """Critical test: Simulates the backup system."""
         self.vault.add_entry(self.m_pass, self.s_key, "DataCritical", "admin", "supersecret")
         
         shutil.copy(self.test_vault_file, self.test_backup_file)
-        
         self.assertTrue(os.path.exists(self.test_backup_file))
 
         backup_vault = VaultManager(self.test_backup_file)
@@ -89,7 +87,7 @@ class TestHarpocratesCore(unittest.TestCase):
         self.assertEqual(data['entries'][0]['title'], "DataCritical")
 
     def test_5_encryption_security(self):
-        """Verifica que el archivo en disco NO sea texto plano (JSON)."""
+        """Verifies that the file on disk is NOT plain text (JSON)."""
         self.vault.add_entry(self.m_pass, self.s_key, "SecretService", "admin", "123456")
         
         with open(self.test_vault_file, 'rb') as f:
@@ -99,30 +97,57 @@ class TestHarpocratesCore(unittest.TestCase):
         self.assertNotEqual(content[0:1], b'{')
 
     def test_6_audit_logs(self):
-        """
-        NUEVO (v1.3): Verifica que el sistema registre cada movimiento.
-        """
-        data = self.vault.load_vault(self.m_pass, self.s_key)
-        self.assertIn('logs', data)
-        self.assertTrue(len(data['logs']) > 0)
-        self.assertEqual(data['logs'][-1]['action'], 'SYSTEM') 
+        """Verifies that the system logs every movement in memory."""
+        self.assertIn('logs', self.vault.data)
+        self.assertTrue(len(self.vault.data['logs']) > 0)
+        self.assertEqual(self.vault.data['logs'][-1]['action'], 'SYSTEM') 
         
         self.vault.add_audit_event(self.m_pass, self.s_key, "LOGIN", "Unit Test Access")
-        data = self.vault.load_vault(self.m_pass, self.s_key)
-        self.assertEqual(data['logs'][0]['action'], 'LOGIN') 
+        self.assertEqual(self.vault.data['logs'][0]['action'], 'LOGIN') 
         
         self.vault.add_entry(self.m_pass, self.s_key, "LogTestApp", "user", "pass")
-        data = self.vault.load_vault(self.m_pass, self.s_key)
-        self.assertEqual(data['logs'][0]['action'], 'CREATE')
-        self.assertIn("LogTestApp", data['logs'][0]['details'])
+        self.assertEqual(self.vault.data['logs'][0]['action'], 'CREATE')
+        self.assertIn("LogTestApp", self.vault.data['logs'][0]['details'])
 
         self.vault.update_entry(self.m_pass, self.s_key, 0, {"notes": "Edited"})
-        data = self.vault.load_vault(self.m_pass, self.s_key)
-        self.assertEqual(data['logs'][0]['action'], 'UPDATE')
+        self.assertEqual(self.vault.data['logs'][0]['action'], 'UPDATE')
 
         self.vault.delete_entry(self.m_pass, self.s_key, 0)
-        data = self.vault.load_vault(self.m_pass, self.s_key)
-        self.assertEqual(data['logs'][0]['action'], 'DELETE')
+        self.assertEqual(self.vault.data['logs'][0]['action'], 'DELETE')
+
+    def test_7_password_generator(self):
+        """Tests the high-entropy password generator."""
+        pw = PasswordGenerator.generate(32)
+        self.assertEqual(len(pw), 32)
+        self.assertTrue(any(c.isupper() for c in pw))
+        self.assertTrue(any(c.isdigit() for c in pw))
+        self.assertTrue(any(c in "!@#$%^&*" for c in pw))
+
+    def test_8_hibp_auditor(self):
+        """Tests the HaveIBeenPwned API integration using K-Anonymity."""
+        pwned_count = PasswordAuditor.check_pwned("password")
+        self.assertTrue(pwned_count > 1000)
+
+        safe_pw = PasswordGenerator.generate(32)
+        safe_count = PasswordAuditor.check_pwned(safe_pw)
+        self.assertEqual(safe_count, 0)
+
+    def test_9_csv_import(self):
+        """Tests importing data from a CSV file with duplicate handling."""
+        with open(self.test_csv_file, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(["name", "url", "username", "password", "notes"])
+            writer.writerow(["GitHub", "https://github.com", "dev1", "gitpass123", "work account"])
+            writer.writerow(["Spotify", "", "music_fan", "spotpass", ""])
+            writer.writerow(["GitHub", "https://github.com", "dev1", "gitpass123", "duplicate"])
+
+        qty, msg = import_from_csv(self.test_csv_file, self.vault, self.s_key, self.m_pass)
+
+        self.assertEqual(qty, 2) 
+        self.assertEqual(len(self.vault.data['entries']), 2)
+        self.assertEqual(self.vault.data['entries'][0]['title'], "GitHub")
+        self.assertEqual(self.vault.data['entries'][1]['title'], "Spotify")
+        self.assertIn("Skipped 1 duplicates", msg)
 
 if __name__ == '__main__':
     unittest.main()

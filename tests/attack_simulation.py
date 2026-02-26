@@ -18,13 +18,13 @@ def simulate_attack():
     |  _  |  _  |\__ \|    \  |  __| | | | |  _  |
     | | | | | | |___| | |\  \ | |___ \ \_/ / | | |
     \_| |_|_| |_/\___/\_| \_/ \____/  \___/\_| |_/
-            [ SIMULACIÓN DE ATAQUE ]
+            [ ATTACK SIMULATION ]
     """ + Style.RESET_ALL)
 
     vault_file = "victim_vault.hpro"
     target_password = "MySuperSecretPassword123!"
     
-    print(f"[1] Generando bóveda víctima con password: {Fore.GREEN}{target_password}{Style.RESET_ALL}")
+    print(f"[1] Generating victim vault with password: {Fore.GREEN}{target_password}{Style.RESET_ALL}")
     
     crypto = HarpocratesCrypto()
     s_key = crypto.generate_secret_key()
@@ -43,33 +43,33 @@ def simulate_attack():
         "MySuperSecretPassword123!" 
     ]
 
-    print(f"\n[2] Iniciando ataque de diccionario ({len(dictionary)} intentos)...")
-    print(Fore.YELLOW + "Fíjate en el tiempo que tarda cada intento (Argon2id en acción):" + Style.RESET_ALL)
+    print(f"\n[2] Starting dictionary attack ({len(dictionary)} attempts)...")
+    print(Fore.YELLOW + "Notice the time each attempt takes (Argon2id in action):" + Style.RESET_ALL)
     print("-" * 60)
 
     start_attack = time.time()
 
     for attempt in dictionary:
-        print(f"[*] Probando password: {Fore.CYAN}{attempt:<25}{Style.RESET_ALL}", end="")
+        print(f"[*] Testing password: {Fore.CYAN}{attempt:<25}{Style.RESET_ALL}", end="")
         
         t0 = time.time()
         try:
             vault.load_vault(attempt, s_key)
             
             dt = time.time() - t0
-            print(f"-> {Fore.GREEN}¡CRACKED! ✅ {Style.RESET_ALL} (Tardó {dt:.4f}s)")
-            print(f"\n{Fore.RED}[!] LA BÓVEDA HA SIDO VULNERADA CON: '{attempt}'{Style.RESET_ALL}")
+            print(f"-> {Fore.GREEN}CRACKED! ✅ {Style.RESET_ALL} (Took {dt:.4f}s)")
+            print(f"\n{Fore.RED}[!] THE VAULT HAS BEEN BREACHED WITH: '{attempt}'{Style.RESET_ALL}")
             break
             
         except Exception:
             dt = time.time() - t0
-            print(f"-> {Fore.RED}FALLÓ ❌ {Style.RESET_ALL} (Tardó {dt:.4f}s)")
+            print(f"-> {Fore.RED}FAILED ❌ {Style.RESET_ALL} (Took {dt:.4f}s)")
 
     total_time = time.time() - start_attack
     print("-" * 60)
-    print(f"Resumen del ataque:")
-    print(f"Tiempo total: {total_time:.4f} segundos")
-    print(f"Promedio por intento: {total_time/len(dictionary):.4f} segundos")
+    print(f"Attack summary:")
+    print(f"Total time: {total_time:.4f} seconds")
+    print(f"Average per attempt: {total_time/len(dictionary):.4f} seconds")
 
     if os.path.exists(vault_file):
         os.remove(vault_file)

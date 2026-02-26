@@ -94,6 +94,11 @@ You can verify the resistance of the vault against brute-force attacks by runnin
 ```bash
 python tests/attack_simulation.py
 ```
+To run the full suite of unit tests (covering cryptography, in-memory caching, and data integrity):
+```bash
+python -m unittest -v tests/test_core.py
+```
+
 ## 🔄 Data Flow (Zero-Knowledge)
 
 1. **Input:** User provides Master Password + Secret Key.
@@ -133,6 +138,7 @@ python tests/attack_simulation.py
   - `argon2-cffi` (Hashing)
   - `python-dotenv` (Configuration)
   - `pyperclip` (Secure Clipboard)
+  - `colorama` (Terminal UI)
 </details>
 
 ## 🤖 CI/CD & Quality Assurance

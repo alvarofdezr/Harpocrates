@@ -1,23 +1,24 @@
 import csv
-import os
 from colorama import Fore, Style
 from datetime import datetime
 
 def import_from_csv(file_path, vault_manager, secret_key, master_password):
     """
-    Imports passwords from a CSV file with Conflict Reporting.
+    Imports passwords from a CSV with a Conflict Report.
     Explicitly lists which entries were skipped due to duplication.
     """
     imported_count = 0
     skipped_details = [] 
     
     try:
-        current_data = vault_manager.load_vault(master_password, secret_key)
+        current_data = vault_manager.data 
         entries = current_data.get('entries', [])
         existing_signatures = set()
+        
         for e in entries:
             sig = f"{e['title'].strip().lower()}|{e['username'].strip().lower()}"
             existing_signatures.add(sig)
+            
         with open(file_path, newline='', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
             field_map = {k.lower(): k for k in reader.fieldnames}
@@ -71,7 +72,7 @@ def import_from_csv(file_path, vault_manager, secret_key, master_password):
                     "details": log_msg
                 })
 
-            vault_manager.save_vault(current_data, master_password, secret_key)
+            vault_manager.save_vault(master_password, secret_key)
             imported_count = len(new_entries_buffer)
 
         msg = f"{Fore.GREEN}[✓] Import finished.{Style.RESET_ALL}\n"
@@ -83,9 +84,9 @@ def import_from_csv(file_path, vault_manager, secret_key, master_password):
             for item in skipped_details:
                 msg += f"    [X] {item}\n"
             msg += "-" * 50 + Style.RESET_ALL
-            msg += f"\n{Fore.CYAN}NOTE: If you wanted the CSV version of these duplicates,\ndelete the old entry in Harpocrates and import again.{Style.RESET_ALL}"
+            msg += f"\n{Fore.CYAN}NOTE: If you wanted the CSV version of these duplicates,\ndelete the old entry in Harpocrates and re-import.{Style.RESET_ALL}"
         
         return imported_count, msg
 
     except Exception as e:
-        return 0, f"Critical import error: {str(e)}"
+        return 0, f"Critical error importing: {str(e)}"
