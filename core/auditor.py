@@ -5,12 +5,12 @@ class PasswordAuditor:
     @staticmethod
     def check_pwned(password):
         """
-        Verifica si una contraseña ha sido expuesta en brechas de datos.
-        Usa K-Anonymity (API Range) para privacidad total.
+        Checks if a password has been exposed in data breaches.
+        Uses K-Anonymity (API Range) for total privacy.
         
-        Retorna:
-            int: Número de veces que se ha filtrado.
-            -1: Error de conexión.
+        Returns:
+            int: Number of times it has been leaked.
+            -1: Connection error.
         """
 
         sha1_password = hashlib.sha1(password.encode('utf-8')).hexdigest().upper() #nosec

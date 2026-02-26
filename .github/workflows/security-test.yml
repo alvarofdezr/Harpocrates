@@ -23,4 +23,4 @@ jobs:
       run: python -m unittest discover tests
       
     - name: Security Scan (Bandit)
-      run: bandit -r core/ app/ -f custom
+      run: bandit -r core/ app/ -f screen

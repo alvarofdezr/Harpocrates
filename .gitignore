@@ -211,3 +211,4 @@ __marimo__/
 *.hpro
 secret_key.txt
 *.backup
+Releases.md

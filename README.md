@@ -1,28 +1,26 @@
 <p align="center">
-  <img src="img/icono.png" width="250" alt="Harpocrates Logo">
+  <img src="img/icono.png" width="300" height="300" alt="Harpocrates Logo">
 </p>
 
 ---
-# 🔐 Harpocrates Vault v1.5.0
+# 🔐 Harpocrates Vault v1.5.1
 > **Zero-Knowledge Password Manager | Argon2id + AES-256-GCM**
 
-![Security Status](https://github.com/alvarofdezr/Harpocrates/actions/workflows/security-test.yml/badge.svg)
+![Security Status](https://github.com/alvarofdezr/Harpocrates/actions/workflows/security-test.yml/badge.svg?branch=main)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
-![Release](https://img.shields.io/badge/Release-v1.5.0-blue)
+![Release](https://img.shields.io/badge/Release-v1.5.1-blue)
 
 **Harpocrates** is a robust Command Line Interface (CLI) password manager built for maximum security and privacy. It features a **Zero-Knowledge** architecture, meaning the application never stores or knows your master password.
 
-## 🚀 What's New in v1.5.0 (The Hunter Update)
-> *"Knowledge is power. Privacy is control."*
+## 🚀 What's New in v1.5.1 (Performance & Security Core Update)
+> *"Focusing on what matters: Speed, Transparency, and Core Security."*
 
-- **🕵️‍♂️ OSINT Identity Tracer:** New module (Option 10) to track usernames and emails across **500+ platforms**.
-    - **Sherlock Engine:** Dynamically loads the latest OSINT database from the Sherlock Project.
-    - **Stealth Mode:** Implements **Jitter** (random delays) and User-Agent rotation to evade WAFs and bot detection without needing proxies.
-    - **Hybrid Intelligence:** - **Email:** Checks Gravatar presence and performs "Dorking" on DuckDuckGo to find public leaks/posts.
-        - **Username:** Deep scans social media, developer platforms, and forums.
-    - **Forensic Reports:** Exports findings to JSON for external analysis.
-- **🛡️ Previous Features (v1.4):** HIBP Sentinel (Password Breach Scanner), Smart CSV Import, Black Box Audit Logging.
+- **⚡ In-Memory Vault Caching:** Significant performance boost. The vault is now decrypted only once upon login and securely maintained in memory. Operations like searching, listing, and auditing are now instantaneous, eliminating redundant Argon2id CPU overhead and disk I/O.
+- **🌍 Full English Standardization:** The entire CLI experience, internal forensic logs, and codebase have been unified into English for global consistency and a better professional user experience.
+- **🎯 Strict Zero-Knowledge Focus:** Removed the experimental OSINT module to strictly adhere to the core Threat Model of a secure, offline, Zero-Knowledge password manager.
+- **🛡️ Transparent Memory Management:** Refactored session closure to explicitly delete memory references (`m_pass`, `s_key`). Updated the Threat Model documentation to provide an honest, technically accurate assessment of Python's runtime memory constraints.
+- **🤖 CI/CD Pipeline Fixes:** Corrected Bandit static analysis configurations in GitHub Actions to ensure robust and accurate security vulnerability scanning on every commit.
 
 
 ## 🛡️ Security Architecture
@@ -47,13 +45,13 @@ No Python required. Plug and play.
 
 ### Option B: From Source (Developers)
 1. **Clone and Setup:**
-   ```bash
-   git clone https://github.com/alvarofdezr/Harpocrates.git
-   cd Harpocrates
-   python -m venv venv
-   # Activate venv
-   pip install -r requirements.txt
-   ```
+    ```bash
+    git clone https://github.com/alvarofdezr/Harpocrates.git
+    cd Harpocrates
+    python -m venv venv
+    source venv/bin/activate  # On Windows use: venv\Scripts\activate
+    pip install -r requirements.txt  
+    ```
 2. **Run:**
     ```bash
     python main.py
@@ -69,7 +67,7 @@ No Python required. Plug and play.
     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝      ╚═════╝  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝
                                     [ SILENCE IS SECURITY ]
     ------------------------------------------------------------------------------------------
-            ARCHITECTURE: Zero-Knowledge | ALGORITHMS: Argon2id + AES-256-GCM (v1.5.0)
+            ARCHITECTURE: Zero-Knowledge | ALGORITHMS: Argon2id + AES-256-GCM (v1.5.1)
     ------------------------------------------------------------------------------------------
 
     [?] Master Password: 
@@ -77,17 +75,16 @@ No Python required. Plug and play.
 
     [✓] Access Granted: Vault decrypted in memory.
 
-    ----------------------------- Main Menu (v1.5) ------------------------------ 
-    [1] List      -> View accounts. Select an ID to Copy Password, Edit, or Delete.
-    [2] Add       -> Store a new credential (includes strength meter).
-    [3] Search    -> Deep search by service name or username.
-    [4] Generate  -> Create high-entropy passwords (32 chars).
-    [5] Import    -> Batch import from CSV.
-    [6] Exit      -> Clears memory buffers and closes.
-    [7] Backup    -> Create a timestamped copy of your vault (e.g., backup_20241027.hpro).
+    ----------------------------- Main Menu (v1.5.1) ------------------------------ 
+    [1] List         -> View accounts. Select an ID to Copy Password, Edit, or Delete.
+    [2] Add          -> Store a new credential (includes strength meter).
+    [3] Search       -> Deep search by service name or username.
+    [4] Generate     -> Create high-entropy passwords (32 chars).
+    [5] Import       -> Batch import from CSV.
+    [6] Exit         -> Clears session references and closes.
+    [7] Backup       -> Create a timestamped copy of your vault (e.g., backup_20241027.hpro).
     [8] Audit Log    -> Inspect the internal Forensic Event History.
     [9] HIBP Scan    -> Check your vault against 8 billion leaked passwords.
-    [10] OSINT Identity Tracer -> Track usernames and emails across 500+ platforms.
 
     Harpocrates >
     ```
@@ -112,7 +109,7 @@ python tests/attack_simulation.py
 | **Brute Force (Online)** | Argon2id with high memory cost makes local cracking attempts computationally expensive. |
 | **Vault Theft** | Even with the `.hpro` file, an attacker needs BOTH the Master Password and the 128-bit Secret Key. |
 | **Data Tampering** | AES-GCM provides AEAD (Authenticated Encryption with Associated Data). Any modification to the encrypted file results in a decryption failure. |
-| **Memory Dump** | Harpocrates uses local variables and minimizes long-term RAM storage of sensitive keys (Work in Progress). |
+| **Memory Dump** | As a Python application, master keys persist as immutable strings in RAM during the active session. Once the application is closed, memory references are deleted, but protection against live memory dumping (e.g., via specialized forensics or malware) is limited by the Python runtime environment. |
 
 
 ## 🛠️ Technical Specifications
@@ -154,7 +151,7 @@ If you are upgrading from v1.0/v1.1, please note that the database format has ch
 
 - Delete your old vault.hpro.
 
-- Launch v1.5.0 to generate a new vault with the updated crypto engine.
+- Launch v1.5.1 to generate a new vault with the updated crypto engine.
 
 - Import your passwords using option [5].
 

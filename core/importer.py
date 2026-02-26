@@ -5,8 +5,8 @@ from datetime import datetime
 
 def import_from_csv(file_path, vault_manager, secret_key, master_password):
     """
-    Importa contraseñas desde CSV con Reporte de Conflictos.
-    Lista explícitamente qué entradas se han omitido por duplicidad.
+    Imports passwords from a CSV file with Conflict Reporting.
+    Explicitly lists which entries were skipped due to duplication.
     """
     imported_count = 0
     skipped_details = [] 
@@ -29,7 +29,7 @@ def import_from_csv(file_path, vault_manager, secret_key, master_password):
             col_note = field_map.get('notes') or field_map.get('note')
             
             if not (col_name and col_user and col_pass):
-                return 0, Fore.RED + "Formato CSV irreconocible. Faltan cabeceras estándar."
+                return 0, Fore.RED + "Unrecognized CSV format. Missing standard headers."
 
             new_entries_buffer = []
 
@@ -74,18 +74,18 @@ def import_from_csv(file_path, vault_manager, secret_key, master_password):
             vault_manager.save_vault(current_data, master_password, secret_key)
             imported_count = len(new_entries_buffer)
 
-        msg = f"{Fore.GREEN}[✓] Importación finalizada.{Style.RESET_ALL}\n"
-        msg += f"    - Nuevas entradas añadidas: {imported_count}\n"
+        msg = f"{Fore.GREEN}[✓] Import finished.{Style.RESET_ALL}\n"
+        msg += f"    - New entries added: {imported_count}\n"
         
         if skipped_details:
-            msg += f"\n{Fore.YELLOW}[!] Se omitieron {len(skipped_details)} duplicados (ya existían en tu bóveda):{Style.RESET_ALL}\n"
+            msg += f"\n{Fore.YELLOW}[!] Skipped {len(skipped_details)} duplicates (already in your vault):{Style.RESET_ALL}\n"
             msg += Fore.RED + "-" * 50 + "\n"
             for item in skipped_details:
                 msg += f"    [X] {item}\n"
             msg += "-" * 50 + Style.RESET_ALL
-            msg += f"\n{Fore.CYAN}NOTA: Si querías la versión del CSV de estos duplicados,\nborra la entrada antigua en Harpocrates y vuelve a importar.{Style.RESET_ALL}"
+            msg += f"\n{Fore.CYAN}NOTE: If you wanted the CSV version of these duplicates,\ndelete the old entry in Harpocrates and import again.{Style.RESET_ALL}"
         
         return imported_count, msg
 
     except Exception as e:
-        return 0, f"Error crítico importando: {str(e)}"
+        return 0, f"Critical import error: {str(e)}"

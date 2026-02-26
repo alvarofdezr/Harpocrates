@@ -12,8 +12,7 @@ from core.vault import VaultManager
 from core.crypto import HarpocratesCrypto
 from core.generator import PasswordGenerator
 from core.importer import import_from_csv
-from core.auditor import PasswordAuditor  
-from core.osint import OsintScanner 
+from core.auditor import PasswordAuditor   
 load_dotenv()
 
 BANNER = r"""
@@ -30,57 +29,73 @@ BANNER = r"""
 """
 
 def secure_copy(data):
+    """
+    Copies data to the clipboard securely and clears it after a timeout.
+    Uses a background thread to clear the clipboard to avoid blocking the UI.
+    """
     try:
         pyperclip.copy(data)
-        print(f"\n[i] Portapapeles: Datos copiados. Se borrarán en 20s.")
+        print(f"\n[i] Clipboard: Data copied. Will be cleared in 20s.")
         def clear():
             time.sleep(20)
             if pyperclip.paste() == data:
                 pyperclip.copy("")
         threading.Thread(target=clear, daemon=True).start()
     except Exception:
-        print(Fore.YELLOW + "[!] No se pudo acceder al portapapeles." + Style.RESET_ALL)
+        print(Fore.YELLOW + "[!] Could not access clipboard." + Style.RESET_ALL)
 
 def check_strength(pw):
+    """
+    Evaluates the strength of a password based on length and character variety.
+    Returns a colored string indicating 'WEAK' or 'STRONG'.
+    """
     s=0
     if len(pw)>=12: s+=1
     if re.search(r"\d", pw): s+=1
     if re.search(r"[A-Z]", pw): s+=1
     if re.search(r"[!@#$%^&*]", pw): s+=1
-    if s<3: return Fore.RED + "DÉBIL" + Style.RESET_ALL
-    return Fore.GREEN + "FUERTE" + Style.RESET_ALL
+    if s<3: return Fore.RED + "WEAK" + Style.RESET_ALL
+    return Fore.GREEN + "STRONG" + Style.RESET_ALL
 
 def entry_action_menu(vault, m_pass, s_key, entry, index):
-    """Submenú de gestión v1.5.0"""
+    """
+    Displays the management submenu for a specific vault entry.
+    Allows copying password, editing fields, or deleting the entry.
+    """
     while True:
-        print(f"\nServicio: {Fore.CYAN}{entry['title']}{Style.RESET_ALL} | User: {entry['username']}")
-        if entry.get('notes'): print(f"Notas: {Fore.YELLOW}{entry['notes']}{Style.RESET_ALL}")
+        print(f"\nService: {Fore.CYAN}{entry['title']}{Style.RESET_ALL} | Username: {entry['username']}")
+        if entry.get('notes'): print(f"Notes: {Fore.YELLOW}{entry['notes']}{Style.RESET_ALL}")
         
-        print("\n1. Copiar Pass  2. Editar  3. Borrar  4. Volver")
+        print("\n1. Copy Password  2. Edit  3. Delete  4. Back")
         op = input("> ")
         
         if op == '1':
             secure_copy(entry['password'])
             break
         elif op == '2':
-            print("--- Deja vacío para no cambiar ---")
+            print("--- Leave empty to keep current ---")
             chg = {}
+            labels = {'title': 'Title', 'username': 'Username', 'password': 'Password', 'url': 'URL', 'notes': 'Notes'} #nosec
             for field in ['title','username','password','url','notes']:
-                val = input(f"{field.capitalize()}: ")
+                val = input(f"{labels[field]}: ")
                 if val: chg[field] = val
             if chg:
                 vault.update_entry(m_pass, s_key, index, chg)
-                print(Fore.GREEN + "[✓] Actualizado." + Style.RESET_ALL)
+                print(Fore.GREEN + "[✓] Updated." + Style.RESET_ALL)
                 break
         elif op == '3':
-            if input("¿Borrar? (s/n): ") == 's':
+            if input("Delete? (y/n): ") == 's':
                 vault.delete_entry(m_pass, s_key, index)
-                print(Fore.RED + "[✓] Eliminado." + Style.RESET_ALL)
+                print(Fore.RED + "[✓] Deleted." + Style.RESET_ALL)
                 return True
         elif op == '4': break
     return False
 
 def run_cli():
+    """
+    Main entry point for the Command Line Interface.
+    Handles authentication, main menu navigation, and user interactions.
+    """
     os.system('cls' if os.name == 'nt' else 'clear') # nosec
     print(BANNER)
     
@@ -88,10 +103,10 @@ def run_cli():
     crypto = HarpocratesCrypto()
     
     if not os.path.exists("vault.hpro"):
-        m_pass = input("Crea tu Master Password: ")
+        m_pass = input("Create your Master Password: ")
         s_key = crypto.generate_secret_key()
         vault.create_new_vault(m_pass, s_key)
-        print(f"\nSECRET KEY: {s_key}\n¡GUÁRDALA!")
+        print(f"\nSECRET KEY: {s_key}\nSAVE IT!")
     
     m_pass = input("[?] Master Password: ")
     s_key = input("[?] Secret Key: ")
@@ -99,58 +114,61 @@ def run_cli():
     try:
         vault.load_vault(m_pass, s_key)
         vault.add_audit_event(m_pass, s_key, "LOGIN", "Access via CLI")
-        print(Fore.GREEN + "\n[✓] Acceso Concedido." + Style.RESET_ALL)
+        print(Fore.GREEN + "\n[✓] Access Granted." + Style.RESET_ALL)
         
         while True:
-            print(f"\n{'-'*30} MENÚ v1.5.0 {'-'*40}")
-            print("1.  Listar       2. Añadir      3. Buscar")
-            print("4.  Generar      5. Importar    6. Salir")
-            print("7.  Backup       8. Ver Logs    9. Escáner HIBP")
-            print("10. OSINT Identity Tracer")
+            print(f"\n{'-'*30} MENU v1.5.1 {'-'*40}")
+            print("1.  List         2. Add         3. Search")
+            print("4.  Generate     5. Import      6. Exit")
+            print("7.  Backup       8. View Logs   9. HIBP Scanner")
             op = input("\n> ").strip()
             
             if op == '1':
-                data = vault.load_vault(m_pass, s_key)
+                data = vault.data 
                 entries = data.get('entries', [])
-                print(f"\nID    | {'SERVICIO':<40} | USUARIO")
+                print(f"\nID    | {'SERVICE':<40} | USERNAME")
                 print("-" * 60)
                 for i, e in enumerate(entries):
                     print(f"{i:<4} | {e['title']:<40} | {e['username']}")
-                sel = input("\nID para gestionar (Enter volver): ")
+                sel = input("\nID to manage (Enter to go back): ")
                 if sel.isdigit() and int(sel) < len(entries):
                     entry_action_menu(vault, m_pass, s_key, entries[int(sel)], int(sel))
 
             elif op == '2':
-                t = input("Servicio: ")
-                u = input("Usuario: ")
-                p = PasswordGenerator.generate(24) if input("¿Auto-pass? (s/n): ")=='s' else input("Pass: ")
+                t = input("Service: ")
+                u = input("Username: ")
+                p = PasswordGenerator.generate(24) if input("Auto-generate? (y/n): ")=='s' else input("Password: ")
                 print(check_strength(p))
-                vault.add_entry(m_pass, s_key, t, u, p, input("URL: "), input("Notas: "))
-                print("[✓] Guardado.")
+                vault.add_entry(m_pass, s_key, t, u, p, input("URL: "), input("Notes: "))
+                print("[✓] Saved.")
 
             elif op == '3':
-                q = input("Buscar: ").lower()
-                data = vault.load_vault(m_pass, s_key)
+                q = input("Search: ").lower()
+                data = vault.data
                 res = [(i,e) for i,e in enumerate(data['entries']) if q in e['title'].lower()]
                 for i, (idx, e) in enumerate(res): print(f"[{i}] {e['title']}")
                 if res:
-                    sel = input("Selección: ")
+                    sel = input("Select ID: ")
                     if sel.isdigit() and int(sel) < len(res):
                         entry_action_menu(vault, m_pass, s_key, res[int(sel)][1], res[int(sel)][0])
 
             elif op == '4':
                 pw = PasswordGenerator.generate(32)
-                print(f"Pass: {Fore.GREEN}{pw}{Style.RESET_ALL}")
-                if input("¿Copiar? (s/n): ")=='s': secure_copy(pw)
+                print(f"Password: {Fore.GREEN}{pw}{Style.RESET_ALL}")
+                if input("Copy? (y/n): ")=='s': secure_copy(pw)
 
             elif op == '5':
-                path = input("CSV: ").strip('"')
-                if input("¿Importar? (s/n): ")=='s':
+                path = input("CSV File: ").strip('"')
+                if input("Import? (y/n): ")=='s':
                     qty, msg = import_from_csv(path, vault, s_key, m_pass)
                     print(msg)
                     if qty > 0: vault.add_audit_event(m_pass, s_key, "IMPORT", f"Imported {qty} items")
 
-            elif op == '6': break
+            elif op == '6': 
+                del m_pass
+                del s_key
+                print("\n[!] Closing session securely...")
+                break
 
             elif op == '7':
                 bk = f"backup_{datetime.now().strftime('%Y%m%d_%H%M')}.hpro"
@@ -159,23 +177,23 @@ def run_cli():
                 print(f"[✓] Backup: {bk}")
 
             elif op == '8':
-                data = vault.load_vault(m_pass, s_key)
+                data = vault.data 
                 logs = data.get('logs', [])
-                print(Fore.CYAN + f"\n--- REGISTRO FORENSE ({len(logs)}) ---" + Style.RESET_ALL)
+                print(Fore.CYAN + f"\n--- FORENSIC LOG ({len(logs)}) ---" + Style.RESET_ALL)
                 for l in logs[:15]: 
                     print(f"{l['timestamp']} | {l['action']:<10} | {l['details']}")
-                input("\nEnter para volver...")
+                input("\nPress Enter to return...")
 
             elif op == '9':
-                print(Fore.YELLOW + "\n[!] Conectando con HaveIBeenPwned (K-Anonymity)..." + Style.RESET_ALL)
-                data = vault.load_vault(m_pass, s_key)
+                print(Fore.YELLOW + "\n[!] Connecting to HaveIBeenPwned (K-Anonymity)..." + Style.RESET_ALL)
+                data = vault.data 
                 bad_count = 0
                 
                 for e in data['entries']:
-                    print(f"[*] Analizando {e['title']}...", end="", flush=True)
+                    print(f"[*] Analyzing {e['title']}...", end="", flush=True)
                     c = PasswordAuditor.check_pwned(e['password'])
                     if c > 0:
-                        print(Fore.RED + f" ¡PWNED! ({c} veces)" + Style.RESET_ALL)
+                        print(Fore.RED + f" PWNED! ({c} times)" + Style.RESET_ALL)
                         bad_count += 1
                     else:
                         print(Fore.GREEN + " OK" + Style.RESET_ALL)
@@ -183,37 +201,13 @@ def run_cli():
                 
                 if bad_count > 0:
                     vault.add_audit_event(m_pass, s_key, "HIBP_ALERT", f"Scan found {bad_count} leaked passwords")
-                    print(Fore.RED + f"\n[X] ALERTA: Tienes {bad_count} contraseñas filtradas." + Style.RESET_ALL)
+                    print(Fore.RED + f"\n[X] ALERT: You have {bad_count} leaked passwords." + Style.RESET_ALL)
                 else:
                     vault.add_audit_event(m_pass, s_key, "HIBP_CLEAN", "Full scan passed successfully")
-                    print(Fore.GREEN + "\n[✓] Tu bóveda es segura." + Style.RESET_ALL)
-            # --- OPCIÓN 10: OSINT (Identity Tracer) ---
-            elif op == '10':
-                scanner = OsintScanner()
-                print(Fore.YELLOW + "\n--- RECONOCIMIENTO DE HUELLA DIGITAL (OSINT) ---" + Style.RESET_ALL)
-                target_user = input("Objetivo (Usuario o Email): ").strip()
-                
-                if target_user:
-                    found = scanner.scan_target(target_user)
-                    
-                    print("-" * 50)
-                    if found:
-                        print(Fore.GREEN + f"[!] ÉXITO: Se encontraron {len(found)} coincidencias." + Style.RESET_ALL)
-                        log_msg = f"OSINT Scan '{target_user}': {len(found)} matches found."
-                        vault.add_audit_event(m_pass, s_key, "OSINT_HIT", log_msg)
-
-                        if input(f"\n{Fore.CYAN}¿Generar reporte forense (JSON)? (s/n): {Style.RESET_ALL}").lower() == 's':
-                            fname = scanner.save_report(target_user)
-                            if fname:
-                                print(f"{Fore.GREEN}[✓] Reporte guardado en: {fname}{Style.RESET_ALL}")
-                                vault.add_audit_event(m_pass, s_key, "OSINT_EXPORT", f"Report generated: {fname}")
-                    else:
-                        print(Fore.YELLOW + "[i] Objetivo limpio. No se encontraron perfiles públicos (Top 100)." + Style.RESET_ALL)
-                        vault.add_audit_event(m_pass, s_key, "OSINT_CLEAN", f"Scanned '{target_user}'. No matches.")
-                    print("-" * 50)
+                    print(Fore.GREEN + "\n[✓] Your vault is secure." + Style.RESET_ALL)
 
     except Exception as e:
-        print(Fore.RED + f"\n[!] Error/Auth Fallida: {e}" + Style.RESET_ALL)
+        print(Fore.RED + f"\n[!] Error/Auth Failed: {e}" + Style.RESET_ALL)
         time.sleep(2) 
 
 if __name__ == "__main__":
