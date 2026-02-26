@@ -7,8 +7,8 @@ setup(
     install_requires=[
         "cryptography",
         "argon2-cffi",
-        "python-dotenv",
-        "pyperclip"
+        "pyperclip",
+        "colorama"
     ],
     entry_points={
         'console_scripts': [

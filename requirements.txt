@@ -3,5 +3,4 @@ argon2-cffi-bindings==25.1.0
 cffi==2.0.0
 cryptography==46.0.3
 pyperclip==1.11.0
-python-dotenv==1.2.1
 colorama==0.4.6

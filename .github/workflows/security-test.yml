@@ -24,3 +24,6 @@ jobs:
       
     - name: Security Scan (Bandit)
       run: bandit -r core/ app/ -f screen
+      
+    - name: Dependency Vulnerability Scan (Safety)
+      run: safety check -r requirements.txt

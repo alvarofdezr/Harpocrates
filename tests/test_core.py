@@ -3,6 +3,7 @@ import os
 import shutil
 import csv
 import sys
+from unittest.mock import patch
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -123,10 +124,28 @@ class TestHarpocratesCore(unittest.TestCase):
         self.assertTrue(any(c.isdigit() for c in pw))
         self.assertTrue(any(c in "!@#$%^&*" for c in pw))
 
-    def test_8_hibp_auditor(self):
-        """Tests the HaveIBeenPwned API integration using K-Anonymity."""
+    @patch('core.auditor.requests.get')
+    def test_8_hibp_auditor(self, mock_get):
+        """Tests the HaveIBeenPwned API integration using K-Anonymity (Mocked)."""
+        
+        class MockResponse:
+            def __init__(self, text, status_code):
+                self.text = text
+                self.status_code = status_code
+            
+            def raise_for_status(self):
+                if self.status_code != 200:
+                    raise Exception(f"HTTP Error: {self.status_code}")
+
+        def side_effect(url, *args, **kwargs):
+            if "5BAA6" in url:
+                return MockResponse("1E4C9B93F3F0682250B6CF8331B7EE68FD8:2500\nOTHER:10", 200)
+            return MockResponse("SOMEOTHERHASH:5\n", 200)
+
+        mock_get.side_effect = side_effect
+
         pwned_count = PasswordAuditor.check_pwned("password")
-        self.assertTrue(pwned_count > 1000)
+        self.assertEqual(pwned_count, 2500)
 
         safe_pw = PasswordGenerator.generate(32)
         safe_count = PasswordAuditor.check_pwned(safe_pw)

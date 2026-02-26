@@ -6,14 +6,12 @@ import re
 from datetime import datetime
 from colorama import Fore, Style
 import pyperclip
-from dotenv import load_dotenv
 
 from core.vault import VaultManager
 from core.crypto import HarpocratesCrypto
 from core.generator import PasswordGenerator
 from core.importer import import_from_csv
 from core.auditor import PasswordAuditor   
-load_dotenv()
 
 BANNER = r"""
     ██╗  ██╗ █████╗ ██████╗ ██████╗  ██████╗  ██████╗██████╗  █████╗ ████████╗███████╗███████╗
@@ -75,7 +73,7 @@ def entry_action_menu(vault, m_pass, s_key, entry, index):
         elif op == '2':
             print("--- Leave empty to keep current ---")
             chg = {}
-            labels = {'title': 'Title', 'username': 'Username', 'password': 'Password', 'url': 'URL', 'notes': 'Notes'} #nosec
+            labels = {'title': 'Title', 'username': 'Username', 'password': 'Pass', 'url': 'URL', 'notes': 'Notes'}
             for field in ['title','username','password','url','notes']:
                 val = input(f"{labels[field]}: ")
                 if val: chg[field] = val
