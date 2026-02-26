@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "harpocrates-vault"
+version = "1.5.1"
+description = "A high-security local encrypted password manager"
+readme = "README.md"
+authors = [{name = "alvarofdezr"}]
+requires-python = ">=3.10"
+dependencies = [
+    "cryptography==46.0.5",
+    "argon2-cffi==25.1.0",
+    "pyperclip==1.11.0",
+    "colorama==0.4.6",
+    "requests==2.32.4",
+    "zxcvbn==4.4.28"
+]
+
+[project.scripts]
+harpocrates = "main:main"

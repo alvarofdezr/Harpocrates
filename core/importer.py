@@ -1,23 +1,15 @@
 import csv
 from colorama import Fore, Style
-from datetime import datetime
 
-def import_from_csv(file_path, vault_manager, secret_key, master_password):
-    """
-    Imports passwords from a CSV with a Conflict Report.
-    Explicitly lists which entries were skipped due to duplication.
-    """
+def import_from_csv(file_path, vault_manager):
+    """Imports passwords securely using a rollback-safe transaction."""
     imported_count = 0
     skipped_details = [] 
+    buffer_entries = []
     
     try:
-        current_data = vault_manager.data 
-        entries = current_data.get('entries', [])
-        existing_signatures = set()
-        
-        for e in entries:
-            sig = f"{e['title'].strip().lower()}|{e['username'].strip().lower()}"
-            existing_signatures.add(sig)
+        entries = vault_manager.get_entries()
+        existing_signatures = {f"{e['title'].strip().lower()}|{e['username'].strip().lower()}" for e in entries}
             
         with open(file_path, newline='', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
@@ -30,61 +22,38 @@ def import_from_csv(file_path, vault_manager, secret_key, master_password):
             col_note = field_map.get('notes') or field_map.get('note')
             
             if not (col_name and col_user and col_pass):
-                return 0, Fore.RED + "Unrecognized CSV format. Missing standard headers."
-
-            new_entries_buffer = []
+                return 0, f"{Fore.RED}Unrecognized CSV format. Missing headers.{Style.RESET_ALL}"
 
             for row in reader:
-                title = row[col_name]
-                user = row[col_user]
-                password = row[col_pass]
-                url = row.get(col_url, '')
-                notes = row.get(col_note, '')
+                title = row.get(col_name, '').strip()
+                user = row.get(col_user, '').strip()
+                password = row.get(col_pass, '')
 
                 if not title or not password:
                     continue
 
-                incoming_sig = f"{title.strip().lower()}|{user.strip().lower()}"
+                incoming_sig = f"{title.lower()}|{user.lower()}"
                 
                 if incoming_sig in existing_signatures:
                     skipped_details.append(f"{title} ({user})")
                 else:
-                    new_entry = {
-                        "title": title,
-                        "username": user,
-                        "password": password,
-                        "url": url,
-                        "notes": notes,
-                        "created_at": datetime.now().isoformat()
-                    }
-                    new_entries_buffer.append(new_entry)
+                    buffer_entries.append({
+                        'title': title, 'username': user, 'password': password,
+                        'url': row.get(col_url, ''), 'notes': row.get(col_note, '')
+                    })
                     existing_signatures.add(incoming_sig)
 
-        if new_entries_buffer:
-            entries.extend(new_entries_buffer)
-            current_data['entries'] = entries
-
-            if 'logs' in current_data:
-                log_msg = f"Imported {len(new_entries_buffer)} items. Conflicts: {len(skipped_details)}"
-                current_data['logs'].insert(0, {
-                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "action": "IMPORT_CSV",
-                    "details": log_msg
-                })
-
-            vault_manager.save_vault(master_password, secret_key)
-            imported_count = len(new_entries_buffer)
+        if buffer_entries:
+            vault_manager.add_entries_bulk(buffer_entries)
+            imported_count = len(buffer_entries)
 
         msg = f"{Fore.GREEN}[✓] Import finished.{Style.RESET_ALL}\n"
         msg += f"    - New entries added: {imported_count}\n"
         
         if skipped_details:
-            msg += f"\n{Fore.YELLOW}[!] Skipped {len(skipped_details)} duplicates (already in your vault):{Style.RESET_ALL}\n"
-            msg += Fore.RED + "-" * 50 + "\n"
+            msg += f"\n{Fore.YELLOW}[!] Skipped {len(skipped_details)} duplicates:{Style.RESET_ALL}\n"
             for item in skipped_details:
                 msg += f"    [X] {item}\n"
-            msg += "-" * 50 + Style.RESET_ALL
-            msg += f"\n{Fore.CYAN}NOTE: If you wanted the CSV version of these duplicates,\ndelete the old entry in Harpocrates and re-import.{Style.RESET_ALL}"
         
         return imported_count, msg
 

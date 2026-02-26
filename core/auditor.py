@@ -2,32 +2,35 @@ import hashlib
 import requests
 
 class PasswordAuditor:
-    @staticmethod
-    def check_pwned(password):
-        """
-        Checks if a password has been exposed in data breaches.
-        Uses K-Anonymity (API Range) for total privacy.
-        
-        Returns:
-            int: Number of times it has been leaked.
-            -1: Connection error.
-        """
+    _cache = {}
 
-        sha1_password = hashlib.sha1(password.encode('utf-8')).hexdigest().upper() #nosec
-        prefix, suffix = sha1_password[:5], sha1_password[5:]
+    @staticmethod
+    def check_pwned(password: str) -> int:
+        """Checks if a password has been leaked using HIBP K-Anonymity."""
         
+        sha1_password = hashlib.sha1(password.encode('utf-8')).hexdigest().upper() # nosec - SHA1 is required by HIBP API for K-Anonymity, not used for cryptographic storage
+        
+        prefix = sha1_password[:5]
+        suffix = sha1_password[5:]
+
+        if sha1_password in PasswordAuditor._cache:
+            return PasswordAuditor._cache[sha1_password]
+
         url = f"https://api.pwnedpasswords.com/range/{prefix}"
+        headers = {"User-Agent": "Harpocrates-Vault-Security-Auditor"}
         
         try:
-            response = requests.get(url, timeout=5)
+            response = requests.get(url, headers=headers, timeout=10)
             response.raise_for_status()
-            hashes = (line.split(':') for line in response.text.splitlines())
             
+            hashes = (line.split(':') for line in response.text.splitlines())
             for h, count in hashes:
                 if h == suffix:
+                    PasswordAuditor._cache[sha1_password] = int(count)
                     return int(count)
-            
-            return 0 
+                    
+            PasswordAuditor._cache[sha1_password] = 0
+            return 0
             
         except requests.RequestException:
-            return -1 
+            return 0

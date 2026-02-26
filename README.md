@@ -4,21 +4,21 @@
 
 ---
 # 🔐 Harpocrates Vault v1.5.1
-> **Zero-Knowledge Password Manager | Argon2id + AES-256-GCM**
+> **Local Encrypted Vault Password Manager | Argon2id + AES-256-GCM**
 
 ![Security Status](https://github.com/alvarofdezr/Harpocrates/actions/workflows/security-test.yml/badge.svg?branch=main)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Release](https://img.shields.io/badge/Release-v1.5.1-blue)
 
-**Harpocrates** is a robust Command Line Interface (CLI) password manager built for maximum security and privacy. It features a **Zero-Knowledge** architecture, meaning the application never stores or knows your master password.
+**Harpocrates** is a robust Command Line Interface (CLI) password manager built for maximum security and privacy. It features a **Local Encrypted Vault** architecture, meaning the application never stores or knows your master password.
 
 ## 🚀 What's New in v1.5.1 (Performance & Security Core Update)
 > *"Focusing on what matters: Speed, Transparency, and Core Security."*
 
 - **⚡ In-Memory Vault Caching:** Significant performance boost. The vault is now decrypted only once upon login and securely maintained in memory. Operations like searching, listing, and auditing are now instantaneous, eliminating redundant Argon2id CPU overhead and disk I/O.
 - **🌍 Full English Standardization:** The entire CLI experience, internal forensic logs, and codebase have been unified into English for global consistency and a better professional user experience.
-- **🎯 Strict Zero-Knowledge Focus:** Removed the experimental OSINT module to strictly adhere to the core Threat Model of a secure, offline, Zero-Knowledge password manager.
+- **🎯 Strict Local Encrypted Vault Focus:** Removed the experimental OSINT module to strictly adhere to the core Threat Model of a secure, offline, Local Encrypted Vault password manager.
 - **🛡️ Transparent Memory Management:** Removed misleading memory wiping variables to avoid a false sense of security. Updated the Threat Model documentation to provide an honest, technically accurate assessment of Python's runtime memory constraints.
 - **🤖 CI/CD Pipeline Fixes:** Corrected Bandit static analysis configurations in GitHub Actions to ensure robust and accurate security vulnerability scanning on every commit.
 
@@ -67,7 +67,7 @@ No Python required. Plug and play.
     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝      ╚═════╝  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝
                                     [ SILENCE IS SECURITY ]
     ------------------------------------------------------------------------------------------
-            ARCHITECTURE: Zero-Knowledge | ALGORITHMS: Argon2id + AES-256-GCM (v1.5.1)
+            ARCHITECTURE: Local Encrypted Vault | ALGORITHMS: Argon2id + AES-256-GCM (v1.5.1)
     ------------------------------------------------------------------------------------------
 
     [?] Master Password: 
@@ -99,7 +99,7 @@ To run the full suite of unit tests (covering cryptography, in-memory caching, a
 python -m unittest -v tests/test_core.py
 ```
 
-## 🔄 Data Flow (Zero-Knowledge)
+## 🔄 Data Flow (Local Encrypted Vault)
 
 1. **Input:** User provides Master Password + Secret Key.
 2. **Derivation:** Argon2id processes inputs with a unique Salt.
