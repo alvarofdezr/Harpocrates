@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "harpocrates-vault"
-version = "1.5.1"
+version = "1.6.0"
 description = "A high-security local encrypted password manager"
 readme = "README.md"
 authors = [{name = "alvarofdezr"}]
@@ -20,3 +20,6 @@ dependencies = [
 
 [project.scripts]
 harpocrates = "main:main"
+
+[tool.setuptools.packages.find]
+include = ["app*", "core*"]

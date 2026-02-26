@@ -113,12 +113,16 @@ class TestHarpocratesCore(unittest.TestCase):
         self.assertEqual(self.vault.get_logs()[0]['action'], 'DELETE')
 
     def test_generator_creates_high_entropy_passwords(self):
-        """Tests the high-entropy password generator."""
-        pw = PasswordGenerator.generate(32)
-        self.assertEqual(len(pw), 32)
-        self.assertTrue(any(c.isupper() for c in pw))
-        self.assertTrue(any(c.isdigit() for c in pw))
-        self.assertTrue(any(c in "!@#$%^&*" for c in pw))
+        """Tests the high-entropy password generator over multiple iterations."""
+        valid_symbols = "!@#$%^&*()-_=+[]{}|;:,.<>?/" 
+        
+        for _ in range(10):
+            pw = PasswordGenerator.generate(32)
+            self.assertEqual(len(pw), 32)
+            self.assertTrue(any(c.isupper() for c in pw), f"Missing uppercase in: {pw}")
+            self.assertTrue(any(c.islower() for c in pw), f"Missing lowercase in: {pw}")
+            self.assertTrue(any(c.isdigit() for c in pw), f"Missing digit in: {pw}")
+            self.assertTrue(any(c in valid_symbols for c in pw), f"Missing valid symbol in: {pw}")
 
     @patch('core.auditor.requests.get')
     def test_hibp_auditor_respects_kanonymity(self, mock_get):
