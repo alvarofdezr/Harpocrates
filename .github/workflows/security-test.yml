@@ -17,13 +17,13 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install bandit safety
+        pip install bandit pip-audit
         
     - name: Run Unit Tests
       run: python -m unittest discover tests
       
     - name: Security Scan (Bandit)
       run: bandit -r core/ app/ -f screen
-      
-    - name: Dependency Vulnerability Scan (Safety)
-      run: safety check -r requirements.txt
+
+    - name: Dependency Vulnerability Scan (pip-audit)
+      run: pip-audit -r requirements.txt

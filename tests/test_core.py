@@ -127,7 +127,6 @@ class TestHarpocratesCore(unittest.TestCase):
     @patch('core.auditor.requests.get')
     def test_8_hibp_auditor(self, mock_get):
         """Tests the HaveIBeenPwned API integration using K-Anonymity (Mocked)."""
-        
         class MockResponse:
             def __init__(self, text, status_code):
                 self.text = text
@@ -139,16 +138,19 @@ class TestHarpocratesCore(unittest.TestCase):
 
         def side_effect(url, *args, **kwargs):
             if "5BAA6" in url:
-                return MockResponse("1E4C9B93F3F0682250B6CF8331B7EE68FD8:2500\nOTHER:10", 200)
-            return MockResponse("SOMEOTHERHASH:5\n", 200)
+                return MockResponse("1E4C9B93F3F0682250B6CF8331B7EE68FD8:2500\nOTHERHASH123:10", 200)
+            
+            if "5F4DC" in url:
+                return MockResponse("ABCDEF1234567890ABCDEF1234567890ABCDE:5\nFFFFF9B93F3F0682250B6CF8331B7EE68FD8:2", 200)
+                
+            return MockResponse("", 200)
 
         mock_get.side_effect = side_effect
 
         pwned_count = PasswordAuditor.check_pwned("password")
         self.assertEqual(pwned_count, 2500)
 
-        safe_pw = PasswordGenerator.generate(32)
-        safe_count = PasswordAuditor.check_pwned(safe_pw)
+        safe_count = PasswordAuditor.check_pwned("SafePassword123!")
         self.assertEqual(safe_count, 0)
 
     def test_9_csv_import(self):

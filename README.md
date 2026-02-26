@@ -19,7 +19,7 @@
 - **⚡ In-Memory Vault Caching:** Significant performance boost. The vault is now decrypted only once upon login and securely maintained in memory. Operations like searching, listing, and auditing are now instantaneous, eliminating redundant Argon2id CPU overhead and disk I/O.
 - **🌍 Full English Standardization:** The entire CLI experience, internal forensic logs, and codebase have been unified into English for global consistency and a better professional user experience.
 - **🎯 Strict Zero-Knowledge Focus:** Removed the experimental OSINT module to strictly adhere to the core Threat Model of a secure, offline, Zero-Knowledge password manager.
-- **🛡️ Transparent Memory Management:** Refactored session closure to explicitly delete memory references (`m_pass`, `s_key`). Updated the Threat Model documentation to provide an honest, technically accurate assessment of Python's runtime memory constraints.
+- **🛡️ Transparent Memory Management:** Removed misleading memory wiping variables to avoid a false sense of security. Updated the Threat Model documentation to provide an honest, technically accurate assessment of Python's runtime memory constraints.
 - **🤖 CI/CD Pipeline Fixes:** Corrected Bandit static analysis configurations in GitHub Actions to ensure robust and accurate security vulnerability scanning on every commit.
 
 
@@ -132,13 +132,13 @@ python -m unittest -v tests/test_core.py
 <details>
 <summary><b>System Requirements</b></summary>
 
-- **Python Version:** 3.8 or higher
+- **Python Version:** 3.10 or higher
 - **Dependencies:** 
   - `cryptography` (Engine)
   - `argon2-cffi` (Hashing)
-  - `python-dotenv` (Configuration)
   - `pyperclip` (Secure Clipboard)
   - `colorama` (Terminal UI)
+  - `requests` (HIBP API integration)
 </details>
 
 ## 🤖 CI/CD & Quality Assurance

@@ -8,7 +8,8 @@ setup(
         "cryptography",
         "argon2-cffi",
         "pyperclip",
-        "colorama"
+        "colorama",
+        "requests"
     ],
     entry_points={
         'console_scripts': [

@@ -71,15 +71,14 @@ def entry_action_menu(vault, m_pass, s_key, entry, index):
             secure_copy(entry['password'])
             break
         elif op == '2':
-            print("--- Leave empty to keep current ---")
+            print("--- Leave empty to keep unchanged ---")
             chg = {}
-            labels = {'title': 'Title', 'username': 'Username', 'password': 'Pass', 'url': 'URL', 'notes': 'Notes'}
-            for field in ['title','username','password','url','notes']:
-                val = input(f"{labels[field]}: ")
+            for field in ['title', 'username', 'password', 'url', 'notes']:
+                val = input(f"{field.capitalize()}: ") 
                 if val: chg[field] = val
             if chg:
                 vault.update_entry(m_pass, s_key, index, chg)
-                print(Fore.GREEN + "[✓] Updated." + Style.RESET_ALL)
+                print(Fore.GREEN + "[✓] Updated successfully." + Style.RESET_ALL)
                 break
         elif op == '3':
             if input("Delete? (y/n): ") == 'y':
