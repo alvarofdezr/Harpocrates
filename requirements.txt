@@ -1,7 +1,6 @@
-argon2-cffi==25.1.0
-argon2-cffi-bindings==25.1.0
-cffi==2.0.0
 cryptography==46.0.5
+argon2-cffi==25.1.0
 pyperclip==1.11.0
 colorama==0.4.6
 requests==2.32.4
+zxcvbn==4.4.28

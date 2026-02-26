@@ -33,6 +33,7 @@ class TestHarpocratesCore(unittest.TestCase):
         for file in [self.test_vault_file, self.test_backup_file, self.test_csv_file]:
             if os.path.exists(file):
                 os.remove(file)
+        PasswordAuditor.clear_cache()
 
     def test_add_entry_stores_data_correctly(self):
         """Tests that entries can be added and read safely from memory."""

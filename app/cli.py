@@ -9,7 +9,7 @@ from colorama import Fore, Style
 import pyperclip
 from zxcvbn import zxcvbn
 
-from core.exceptions import HarpocratesError, AuthenticationError
+from core.exceptions import HIBPConnectionError, HarpocratesError, AuthenticationError
 from core.vault import VaultManager
 from core.crypto import HarpocratesCrypto
 from core.generator import PasswordGenerator
@@ -25,7 +25,7 @@ BANNER = r"""
     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝      ╚═════╝  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝
                                     [ SILENCE IS SECURITY ]
     ------------------------------------------------------------------------------------------
-            ARCHITECTURE: Local Encrypted Vault | ALGORITHMS: Argon2id + AES-256-GCM (v1.5.1)
+            ARCHITECTURE: Local Encrypted Vault | ALGORITHMS: Argon2id + AES-256-GCM (v1.6.0)
     ------------------------------------------------------------------------------------------
 """
 
@@ -41,11 +41,14 @@ def secure_copy(data: str) -> None:
         print(Fore.YELLOW + "[!] Could not access the clipboard." + Style.RESET_ALL)
 
 def check_strength(pw: str) -> str:
-    """Uses zxcvbn for real entropy and pattern detection."""
     results = zxcvbn(pw)
-    score = results['score'] 
+    score = results['score']
     if score < 3:
-        feedback = results['feedback']['warning'] or "Weak password."
+        feedback = results['feedback']['warning']
+        if not feedback and results['feedback']['suggestions']:
+            feedback = results['feedback']['suggestions'][0]
+        elif not feedback:
+            feedback = "Add unpredictable words, numbers, or symbols."
         return f"{Fore.RED}WEAK (Score: {score}/4) - {feedback}{Style.RESET_ALL}"
     return f"{Fore.GREEN}STRONG (Score: {score}/4){Style.RESET_ALL}"
 
@@ -108,7 +111,7 @@ def run_cli():
         print(Fore.GREEN + "\n[✓] Access Granted." + Style.RESET_ALL)
         
         while True:
-            print(f"\n{'-'*30} MAIN MENU v1.5.1 {'-'*40}")
+            print(f"\n{'-'*30} MAIN MENU v1.6.0 {'-'*40}")
             print("1.  List         2. Add         3. Search")
             print("4.  Generate     5. Import      6. Exit")
             print("7.  Backup       8. Audit Log   9. HIBP Scan")
@@ -216,6 +219,8 @@ def run_cli():
     except HarpocratesError as e:
         print(Fore.RED + f"\n[!] Vault Error: {e}" + Style.RESET_ALL)
         time.sleep(2)
+    except HIBPConnectionError as e:
+        print(Fore.RED + f"\n[!] Network Error: {e}" + Style.RESET_ALL)
     except Exception as e:
         print(Fore.RED + f"\n[!] Critical System Error: {e}" + Style.RESET_ALL)
         time.sleep(2)

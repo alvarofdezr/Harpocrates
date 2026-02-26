@@ -13,3 +13,7 @@ class VaultCorruptError(HarpocratesError):
 class VaultNotFoundError(HarpocratesError):
     """Raised when attempting to load a non-existent vault."""
     pass
+
+class HIBPConnectionError(HarpocratesError):
+    """Raised when the HIBP API is unreachable."""
+    pass

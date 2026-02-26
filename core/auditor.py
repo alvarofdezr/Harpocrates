@@ -1,20 +1,27 @@
 import hashlib
 import requests
+from core.exceptions import HIBPConnectionError
 
 class PasswordAuditor:
     _cache = {}
+
+    @classmethod
+    def clear_cache(cls) -> None:
+        """Clears the cache (Useful for test idempotency)."""
+        cls._cache.clear()
 
     @staticmethod
     def check_pwned(password: str) -> int:
         """Checks if a password has been leaked using HIBP K-Anonymity."""
         
-        sha1_password = hashlib.sha1(password.encode('utf-8')).hexdigest().upper() # nosec - SHA1 is required by HIBP API for K-Anonymity, not used for cryptographic storage
+        # nosec - SHA1 is strictly required by HIBP API for K-Anonymity
+        sha1_password = hashlib.sha1(password.encode('utf-8')).hexdigest().upper() # nosec
         
         prefix = sha1_password[:5]
         suffix = sha1_password[5:]
 
-        if sha1_password in PasswordAuditor._cache:
-            return PasswordAuditor._cache[sha1_password]
+        if suffix in PasswordAuditor._cache:
+            return PasswordAuditor._cache[suffix]
 
         url = f"https://api.pwnedpasswords.com/range/{prefix}"
         headers = {"User-Agent": "Harpocrates-Vault-Security-Auditor"}
@@ -26,11 +33,11 @@ class PasswordAuditor:
             hashes = (line.split(':') for line in response.text.splitlines())
             for h, count in hashes:
                 if h == suffix:
-                    PasswordAuditor._cache[sha1_password] = int(count)
+                    PasswordAuditor._cache[suffix] = int(count)
                     return int(count)
                     
-            PasswordAuditor._cache[sha1_password] = 0
+            PasswordAuditor._cache[suffix] = 0
             return 0
             
-        except requests.RequestException:
-            return 0
+        except requests.RequestException as e:
+            raise HIBPConnectionError(f"Network error contacting HIBP API: {e}") from e

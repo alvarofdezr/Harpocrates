@@ -5,6 +5,7 @@ from colorama import Fore, Style, init
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from Harpocrates.core.exceptions import AuthenticationError, VaultCorruptError
 from core.vault import VaultManager
 from core.crypto import HarpocratesCrypto
 
@@ -61,9 +62,9 @@ def simulate_attack():
             print(f"\n{Fore.RED}[!] THE VAULT HAS BEEN BREACHED WITH: '{attempt}'{Style.RESET_ALL}")
             break
             
-        except Exception:
+        except (AuthenticationError, VaultCorruptError):
             dt = time.time() - t0
-            print(f"-> {Fore.RED}FAILED ❌ {Style.RESET_ALL} (Took {dt:.4f}s)")
+            print(f"-> FAILED in {dt:.4f}s")
 
     total_time = time.time() - start_attack
     print("-" * 60)
