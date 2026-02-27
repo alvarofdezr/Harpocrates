@@ -30,7 +30,13 @@ class TestHarpocratesCore(unittest.TestCase):
 
     def tearDown(self):
         """Cleans up temporary files after each test."""
-        for file in [self.test_vault_file, self.test_backup_file, self.test_csv_file]:
+        files_to_clean = [
+            self.test_vault_file, 
+            self.test_backup_file, 
+            self.test_csv_file,
+            self.test_vault_file + ".tmp"
+        ]
+        for file in files_to_clean:
             if os.path.exists(file):
                 os.remove(file)
         PasswordAuditor.clear_cache()
@@ -171,6 +177,15 @@ class TestHarpocratesCore(unittest.TestCase):
         self.assertEqual(entries[0]['title'], "GitHub")
         self.assertEqual(entries[1]['title'], "Spotify")
         self.assertIn("Skipped 1 duplicates", msg)
+
+    def test_log_integrity_detects_tampering(self):
+        """Tests that the hash-chain correctly identifies modified intermediate logs."""
+        self.vault.add_entry("Service1", "user1", "pass1")
+        self.vault.add_entry("Service2", "user2", "pass2")
+        
+        self.vault._data['logs'][1]['details'] = "TAMPERED"
+        
+        self.assertFalse(self.vault.verify_log_integrity())
 
 if __name__ == '__main__':
     unittest.main()

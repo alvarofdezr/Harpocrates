@@ -6,7 +6,21 @@ class PasswordGenerator:
     def generate(length=20):
         """
         Generates a cryptographically secure random password.
-        Includes uppercase, lowercase, digits, and symbols.
+        Guarantees at least one uppercase, lowercase, digit, and symbol.
         """
-        alphabet = string.ascii_letters + string.digits + "!@#$%^&*()-_=+"
-        return ''.join(secrets.choice(alphabet) for _ in range(length))
+        symbols = "!@#$%^&*()-_=+"
+        alphabet = string.ascii_letters + string.digits + symbols
+        
+        password = [
+            secrets.choice(string.ascii_uppercase),
+            secrets.choice(string.ascii_lowercase),
+            secrets.choice(string.digits),
+            secrets.choice(symbols)
+        ]
+        
+        password += [secrets.choice(alphabet) for _ in range(length - 4)]
+        
+        secure_rng = secrets.SystemRandom()
+        secure_rng.shuffle(password)
+        
+        return ''.join(password)

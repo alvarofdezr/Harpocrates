@@ -134,6 +134,7 @@ python -m unittest -v tests/test_core.py
 | **Data Tampering** | AES-GCM provides AEAD (Authenticated Encryption with Associated Data). Any modification to the encrypted file results in a decryption failure. |
 | **Memory Persistence** | Python's memory management (Garbage Collection) does not guarantee immediate zeroing of sensitive variables. The `del` statement removes the local reference but the garbage collector does not guarantee immediate memory zeroing. The credentials may persist in the heap until GC collection. |
 | **Mitigation:** | Close the application immediately after use. For true memory-safe zeroing, a lower-level language (Rust/C) implementation is required. |
+| **Log Truncation** | The Hash-Chain ensures the integrity of intermediate logs. However, without a signed genesis block, it cannot mathematically prevent root truncation (an attacker deleting the oldest entries and replacing the genesis `prev_hash` with zeros). |
 
 
 ## 🛠️ Technical Specifications

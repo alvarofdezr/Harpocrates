@@ -2,9 +2,7 @@ import os
 import threading
 import time
 import shutil
-import re
 import getpass
-from datetime import datetime
 from colorama import Fore, Style
 import pyperclip
 from zxcvbn import zxcvbn
@@ -227,8 +225,6 @@ def run_cli():
     except HarpocratesError as e:
         print(Fore.RED + f"\n[!] Vault Error: {e}" + Style.RESET_ALL)
         time.sleep(2)
-    except HIBPConnectionError as e:
-        print(Fore.RED + f"\n[!] Network Error: {e}" + Style.RESET_ALL)
     except Exception as e:
         print(Fore.RED + f"\n[!] Critical System Error: {e}" + Style.RESET_ALL)
         time.sleep(2)
