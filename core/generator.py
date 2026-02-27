@@ -3,7 +3,7 @@ import string
 
 class PasswordGenerator:
     @staticmethod
-    def generate(length=20):
+    def generate(length: int = 20) -> str:
         """
         Generates a cryptographically secure random password.
         Guarantees at least one uppercase, lowercase, digit, and symbol.

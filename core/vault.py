@@ -153,7 +153,7 @@ class VaultManager:
             current_log = logs[i]
             prev_log = logs[i+1]
             
-            if 'prev_hash' not in current_log:
+            if 'prev_hash' not in current_log or not isinstance(current_log['prev_hash'], str):
                 return False
             
             prev_log_str = json.dumps(prev_log, sort_keys=True).encode('utf-8')
@@ -162,7 +162,7 @@ class VaultManager:
             if current_log['prev_hash'] != expected_hash:
                 return False
                 
-        if 'prev_hash' not in logs[-1] or logs[-1]['prev_hash'] != "0" * 64:
+        if 'prev_hash' not in logs[-1] or not isinstance(logs[-1]['prev_hash'], str) or logs[-1]['prev_hash'] != "0" * 64:
             return False
             
         return True

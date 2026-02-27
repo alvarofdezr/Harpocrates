@@ -160,6 +160,7 @@ python -m unittest -v tests/test_core.py
   - `pyperclip` (Secure Clipboard)
   - `colorama` (Terminal UI)
   - `requests` (HIBP API integration)
+  - `zxcvbn` (Password Strength Estimation)
 </details>
 
 ## 🤖 CI/CD & Quality Assurance

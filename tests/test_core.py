@@ -153,9 +153,9 @@ class TestHarpocratesCore(unittest.TestCase):
         safe_prefix, safe_suffix = safe_hash[:5], safe_hash[5:]
 
         def side_effect(url, *args, **kwargs):
-            if pwned_prefix in url:
+            if url.endswith(f"/{pwned_prefix}"):
                 return MockResponse(f"OTHERHASH123:10\n{pwned_suffix}:2500", 200)
-            if safe_prefix in url:
+            if url.endswith(f"/{safe_prefix}"):
                 return MockResponse(f"ABCDEF1234567890ABCDEF1234567890ABCDE:5", 200)
             return MockResponse("", 200)
 
@@ -194,6 +194,10 @@ class TestHarpocratesCore(unittest.TestCase):
         
         self.assertTrue(self.vault.verify_log_integrity())
         
+        # NOTE: This verifies detection of an altered genesis hash. 
+        # As documented in the Threat Model, without a signed genesis block, 
+        # this mathematically cannot detect "root truncation" (where an attacker 
+        # deletes the oldest logs AND sets the new oldest log's prev_hash to 64 zeros).
         original_genesis_hash = self.vault._data['logs'][-1]['prev_hash']
         self.vault._data['logs'][-1]['prev_hash'] = "1" * 64
         self.assertFalse(self.vault.verify_log_integrity())
