@@ -68,7 +68,7 @@ No Python required. Plug and play.
     cd Harpocrates
     python -m venv venv
     source venv/bin/activate  # On Windows use: venv\Scripts\activate
-    pip install -r requirements.txt  
+    pip install . 
     ```
 2. **Run:**
     ```bash
@@ -132,7 +132,7 @@ python -m unittest -v tests/test_core.py
 | **Brute Force (Online)** | Argon2id with high memory cost makes local cracking attempts computationally expensive. |
 | **Vault Theft** | Even with the `.hpro` file, an attacker needs BOTH the Master Password and the 128-bit Secret Key. |
 | **Data Tampering** | AES-GCM provides AEAD (Authenticated Encryption with Associated Data). Any modification to the encrypted file results in a decryption failure. |
-| **Memory Persistence** | Python's memory management (Garbage Collection) does not guarantee immediate zeroing of sensitive variables. While `getpass` is used to prevent terminal echoing, the master password and the derived `bytes` session key reside in the process heap during execution. A local attacker with root privileges capable of dumping the process memory (`gcore`, `Procdump`) while the vault is unlocked could extract these keys. |
+| **Memory Persistence** | Python's memory management (Garbage Collection) does not guarantee immediate zeroing of sensitive variables. The `del` statement removes the local reference but the garbage collector does not guarantee immediate memory zeroing. The credentials may persist in the heap until GC collection. |
 | **Mitigation:** | Close the application immediately after use. For true memory-safe zeroing, a lower-level language (Rust/C) implementation is required. |
 
 

@@ -5,7 +5,7 @@ from colorama import Fore, Style, init
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from Harpocrates.core.exceptions import AuthenticationError, VaultCorruptError
+from core.exceptions import AuthenticationError, VaultCorruptError
 from core.vault import VaultManager
 from core.crypto import HarpocratesCrypto
 

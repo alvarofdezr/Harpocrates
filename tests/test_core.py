@@ -114,7 +114,7 @@ class TestHarpocratesCore(unittest.TestCase):
 
     def test_generator_creates_high_entropy_passwords(self):
         """Tests the high-entropy password generator over multiple iterations."""
-        valid_symbols = "!@#$%^&*()-_=+[]{}|;:,.<>?/" 
+        valid_symbols = "!@#$%^&*()-_=+" 
         
         for _ in range(10):
             pw = PasswordGenerator.generate(32)

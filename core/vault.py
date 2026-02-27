@@ -6,6 +6,8 @@ from datetime import datetime
 from core.crypto import HarpocratesCrypto
 from core.exceptions import VaultNotFoundError
 
+VERSION = "1.6.0"
+
 class VaultManager:
     def __init__(self, vault_path: str = "vault.hpro") -> None:
         self.vault_path = os.path.abspath(vault_path)
@@ -17,7 +19,7 @@ class VaultManager:
     def create_new_vault(self, master_password: str, secret_key: str) -> None:
         self._salt = os.urandom(self.crypto.salt_size)
         self._session_key = self.crypto.derive_session_key(master_password, secret_key, self._salt)
-        self._data = {"version": "1.5.1", "created_at": datetime.now().isoformat(), "entries": [], "logs": []}
+        self._data = {"version": VERSION, "created_at": datetime.now().isoformat(), "entries": [], "logs": []}
         self._append_log("SYSTEM", "Vault Created")
         self.save_vault()
 
@@ -43,12 +45,17 @@ class VaultManager:
         encrypted_data = self.crypto.encrypt_with_session_key(json_str, self._session_key, self._salt)
         
         tmp_path = self.vault_path + ".tmp"
-        with open(tmp_path, 'wb') as f:
-            f.write(encrypted_data)
-            f.flush()
-            os.fsync(f.fileno()) 
-            
-        os.replace(tmp_path, self.vault_path)
+        try:
+            with open(tmp_path, 'wb') as f:
+                f.write(encrypted_data)
+                f.flush()
+                os.fsync(f.fileno()) 
+                
+            os.replace(tmp_path, self.vault_path)
+        except OSError:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+            raise
 
     def get_entries(self) -> list:
         """Returns a deep copy to prevent external mutation of internal state."""
@@ -132,3 +139,26 @@ class VaultManager:
         except Exception as e:
             self._data = original_state
             raise RuntimeError(f"Bulk import failed, memory changes rolled back: {str(e)}")
+        
+    def verify_log_integrity(self) -> bool:
+        """Verifies the cryptographic hash-chain integrity of the audit logs."""
+        if not self._data or 'logs' not in self._data: 
+            return True
+        
+        logs = self._data['logs']
+        if not logs: 
+            return True
+            
+        for i in range(len(logs) - 1):
+            current_log = logs[i]
+            prev_log = logs[i+1]
+            prev_log_str = json.dumps(prev_log, sort_keys=True).encode('utf-8')
+            expected_hash = hashlib.sha256(prev_log_str).hexdigest()
+            
+            if current_log['prev_hash'] != expected_hash:
+                return False
+                
+        if logs[-1]['prev_hash'] != "0" * 64:
+            return False
+            
+        return True

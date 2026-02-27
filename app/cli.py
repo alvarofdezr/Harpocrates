@@ -186,32 +186,40 @@ def run_cli():
 
             elif op == '8':
                 logs = vault.get_logs()
-                print(Fore.CYAN + f"\n--- FORENSIC LOG ({len(logs)}) ---" + Style.RESET_ALL)
+                is_valid = vault.verify_log_integrity()
+                status_color = Fore.GREEN if is_valid else Fore.RED
+                status_text = "VALID" if is_valid else "COMPROMISED"
+                
+                print(Fore.CYAN + f"\n--- FORENSIC LOG ({len(logs)}) [CHAIN: {status_color}{status_text}{Fore.CYAN}] ---" + Style.RESET_ALL)
                 for l in logs[:15]: 
                     print(f"{l['timestamp']} | {l['action']:<10} | {l['details']}")
                 input("\nPress Enter to return...")
 
             elif op == '9':
                 print(Fore.YELLOW + "\n[!] Connecting to HaveIBeenPwned (K-Anonymity)..." + Style.RESET_ALL)
-                entries = vault.get_entries()
-                bad_count = 0
-                
-                for e in entries:
-                    print(f"[*] Analyzing {e['title']}...", end="", flush=True)
-                    c = PasswordAuditor.check_pwned(e['password'])
-                    if c > 0:
-                        print(Fore.RED + f" PWNED! ({c} times)" + Style.RESET_ALL)
-                        bad_count += 1
+                try:
+                    entries = vault.get_entries()
+                    bad_count = 0
+                    
+                    for e in entries:
+                        print(f"[*] Analyzing {e['title']}...", end="", flush=True)
+                        c = PasswordAuditor.check_pwned(e['password'])
+                        if c > 0:
+                            print(Fore.RED + f" PWNED! ({c} times)" + Style.RESET_ALL)
+                            bad_count += 1
+                        else:
+                            print(Fore.GREEN + " OK" + Style.RESET_ALL)
+                        time.sleep(1.5) 
+                    
+                    if bad_count > 0:
+                        vault.add_audit_event("HIBP_ALERT", f"Scan found {bad_count} leaked passwords")
+                        print(Fore.RED + f"\n[X] ALERT: You have {bad_count} leaked passwords." + Style.RESET_ALL)
                     else:
-                        print(Fore.GREEN + " OK" + Style.RESET_ALL)
-                    time.sleep(1.5) 
+                        vault.add_audit_event("HIBP_CLEAN", "Full scan passed successfully")
+                        print(Fore.GREEN + "\n[✓] Your vault is secure." + Style.RESET_ALL)
                 
-                if bad_count > 0:
-                    vault.add_audit_event("HIBP_ALERT", f"Scan found {bad_count} leaked passwords")
-                    print(Fore.RED + f"\n[X] ALERT: You have {bad_count} leaked passwords." + Style.RESET_ALL)
-                else:
-                    vault.add_audit_event("HIBP_CLEAN", "Full scan passed successfully")
-                    print(Fore.GREEN + "\n[✓] Your vault is secure." + Style.RESET_ALL)
+                except HIBPConnectionError as e:
+                    print(Fore.RED + f"\n[!] Network Error during scan: {e}" + Style.RESET_ALL)
 
     except AuthenticationError:
         print(Fore.RED + "\n[!] Authentication Failed: Incorrect Master Password or Secret Key." + Style.RESET_ALL)
