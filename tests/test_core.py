@@ -1,3 +1,4 @@
+import hashlib
 import unittest
 import os
 import shutil
@@ -143,22 +144,30 @@ class TestHarpocratesCore(unittest.TestCase):
                 if self.status_code != 200:
                     raise Exception(f"HTTP Error: {self.status_code}")
 
+        pwned_pass = "password"
+        pwned_hash = hashlib.sha1(pwned_pass.encode('utf-8')).hexdigest().upper()
+        pwned_prefix, pwned_suffix = pwned_hash[:5], pwned_hash[5:]
+        
+        safe_pass = "SafePassword123!"
+        safe_hash = hashlib.sha1(safe_pass.encode('utf-8')).hexdigest().upper()
+        safe_prefix, safe_suffix = safe_hash[:5], safe_hash[5:]
+
         def side_effect(url, *args, **kwargs):
-            if "5BAA6" in url:
-                return MockResponse("1E4C9B93F3F0682250B6CF8331B7EE68FD8:2500\nOTHERHASH123:10", 200)
-            
-            if "5F4DC" in url:
-                return MockResponse("ABCDEF1234567890ABCDEF1234567890ABCDE:5\nFFFFF9B93F3F0682250B6CF8331B7EE68FD8:2", 200)
-                
+            if pwned_prefix in url:
+                return MockResponse(f"OTHERHASH123:10\n{pwned_suffix}:2500", 200)
+            if safe_prefix in url:
+                return MockResponse(f"ABCDEF1234567890ABCDEF1234567890ABCDE:5", 200)
             return MockResponse("", 200)
 
         mock_get.side_effect = side_effect
 
-        pwned_count = PasswordAuditor.check_pwned("password")
+        pwned_count = PasswordAuditor.check_pwned(pwned_pass)
         self.assertEqual(pwned_count, 2500)
-
-        safe_count = PasswordAuditor.check_pwned("SafePassword123!")
+        
+        safe_count = PasswordAuditor.check_pwned(safe_pass)
         self.assertEqual(safe_count, 0)
+        
+        self.assertEqual(mock_get.call_count, 2)
 
     def test_csv_import_handles_duplicates(self):
         """Tests importing data from a CSV file with duplicate handling."""
@@ -178,13 +187,20 @@ class TestHarpocratesCore(unittest.TestCase):
         self.assertEqual(entries[1]['title'], "Spotify")
         self.assertIn("Skipped 1 duplicates", msg)
 
-    def test_log_integrity_detects_tampering(self):
-        """Tests that the hash-chain correctly identifies modified intermediate logs."""
+    def test_log_integrity_validation_cases(self):
+        """Tests the hash-chain against valid, tampered, and truncated states."""
         self.vault.add_entry("Service1", "user1", "pass1")
         self.vault.add_entry("Service2", "user2", "pass2")
         
-        self.vault._data['logs'][1]['details'] = "TAMPERED"
+        self.assertTrue(self.vault.verify_log_integrity())
         
+        original_genesis_hash = self.vault._data['logs'][-1]['prev_hash']
+        self.vault._data['logs'][-1]['prev_hash'] = "1" * 64
+        self.assertFalse(self.vault.verify_log_integrity())
+        
+        self.vault._data['logs'][-1]['prev_hash'] = original_genesis_hash
+        
+        self.vault._data['logs'][1]['details'] = "TAMPERED"
         self.assertFalse(self.vault.verify_log_integrity())
 
 if __name__ == '__main__':

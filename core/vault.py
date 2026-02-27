@@ -152,13 +152,17 @@ class VaultManager:
         for i in range(len(logs) - 1):
             current_log = logs[i]
             prev_log = logs[i+1]
+            
+            if 'prev_hash' not in current_log:
+                return False
+            
             prev_log_str = json.dumps(prev_log, sort_keys=True).encode('utf-8')
             expected_hash = hashlib.sha256(prev_log_str).hexdigest()
             
             if current_log['prev_hash'] != expected_hash:
                 return False
                 
-        if logs[-1]['prev_hash'] != "0" * 64:
+        if 'prev_hash' not in logs[-1] or logs[-1]['prev_hash'] != "0" * 64:
             return False
             
         return True

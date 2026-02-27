@@ -25,7 +25,7 @@ This major release addresses critical architectural findings from a comprehensiv
 * **Honest Threat Modeling:** Documented Python's garbage collection limitations regarding in-memory string persistence for master keys.
 
 **🔍 Auditor & HIBP API**
-* **Memory-Safe Caching:** The in-memory HIBP cache now strictly stores SHA-1 *suffixes* instead of full hashes, preventing full hash exposure in the event of a RAM dump.
+* **API Caching:** The in-memory HIBP cache prevents redundant network calls during bulk scans, significantly improving performance without writing any hashes to disk.
 * **Strict Network Handling:** Replaced silent failures with explicit `HIBPConnectionError` exceptions to prevent false "Secure" flags when the API is unreachable.
 * **Test Idempotency:** Added a cache-clearing mechanism to prevent state bleed between unit tests.
 
@@ -135,6 +135,7 @@ python -m unittest -v tests/test_core.py
 | **Memory Persistence** | Python's memory management (Garbage Collection) does not guarantee immediate zeroing of sensitive variables. The `del` statement removes the local reference but the garbage collector does not guarantee immediate memory zeroing. The credentials may persist in the heap until GC collection. |
 | **Mitigation:** | Close the application immediately after use. For true memory-safe zeroing, a lower-level language (Rust/C) implementation is required. |
 | **Log Truncation** | The Hash-Chain ensures the integrity of intermediate logs. However, without a signed genesis block, it cannot mathematically prevent root truncation (an attacker deleting the oldest entries and replacing the genesis `prev_hash` with zeros). |
+| **Backup Permissions (Windows)** | The POSIX implementation restricts backup files to `0o600` (owner read/write). On Windows, equivalent ACL restrictions are not automatically applied, meaning local backups might be readable by other users on the same machine. |
 
 
 ## 🛠️ Technical Specifications
