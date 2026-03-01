@@ -3,42 +3,24 @@
 </p>
 
 ---
-# 🔐 Harpocrates Vault v1.6.0
+# 🔐 Harpocrates Vault v2.0.0
 > **Local Encrypted Vault Password Manager | Argon2id + AES-256-GCM**
 
 ![Security Status](https://github.com/alvarofdezr/Harpocrates/actions/workflows/security-test.yml/badge.svg?branch=main)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
-![Release](https://img.shields.io/badge/Release-v1.6.0-blue)
+![Release](https://img.shields.io/badge/Release-v2.0.0-blue)
 
-**Harpocrates** is a robust Command Line Interface (CLI) password manager built for maximum security and privacy. It features a **Local Encrypted Vault** architecture, meaning the application never stores or knows your master password.
+**Harpocrates** is a robust Command Line Interface (CLI) password manager built for maximum security and privacy.
 
-## 🚀 What's New in v1.6.0 (Security & Architecture Update)
+## 🚀 What's New in v2.0.0 (Vault Schema & Security Update)
 
-This major release addresses critical architectural findings from a comprehensive senior security audit, transforming Harpocrates from a functional script into a robust, defensively programmed application.
+This major release introduces **Format v2**, addressing the final theoretical vulnerabilities regarding audit log integrity:
 
 **🛡️ Security & Core Architecture**
-* **Atomic Writes:** Eliminated a destructive race condition in `save_vault`. Disk writes now use `os.replace` for atomic write-then-rename, guaranteeing the vault cannot be corrupted during a sudden power loss or crash.
-* **Strict Encapsulation:** Internal state is now protected. Methods like `get_entries()` now return a `deepcopy`, preventing external code from mutating the vault without passing through proper transaction methods.
-* **Transactional Bulk Imports:** `import_from_csv` now uses an atomic buffer. If a disk write fails midway, the vault's memory state performs a deepcopy rollback to prevent data corruption.
-* **Path Traversal Protection:** Normalized vault paths using `os.path.abspath` to prevent directory traversal attacks during instantiation.
-* **Honest Threat Modeling:** Documented Python's garbage collection limitations regarding in-memory string persistence for master keys.
-
-**🔍 Auditor & HIBP API**
-* **API Caching:** The in-memory HIBP cache prevents redundant network calls during bulk scans, significantly improving performance without writing any hashes to disk.
-* **Strict Network Handling:** Replaced silent failures with explicit `HIBPConnectionError` exceptions to prevent false "Secure" flags when the API is unreachable.
-* **Test Idempotency:** Added a cache-clearing mechanism to prevent state bleed between unit tests.
-
-**💻 CLI & Features**
-* **Real Entropy Checks:** Replaced the legacy regex strength checker with `zxcvbn`, the industry standard for password strength estimation and pattern detection.
-* **Input Validation:** Enforced mandatory fields (Service, Username, Password) during manual entry creation.
-* **Unconditional Clipboard Clearing:** Removed race conditions in the clipboard manager to ensure passwords are wiped exactly after 20 seconds.
-* **Granular Error Handling:** Implemented custom exceptions (`AuthenticationError`, `VaultCorruptError`, `VaultNotFoundError`) replacing generic exception swallowing for accurate user feedback.
-
-**⚙️ Engineering & Quality**
-* **Modern Packaging:** Deprecated `setup.py` in favor of standard `pyproject.toml`.
-* **Static Analysis:** Introduced comprehensive Type Hints across core modules (`importer.py`, `crypto.py`) for `mypy` consistency.
-* **Test Isolation:** Renamed all unit tests to descriptive, independent names, removing numbered execution anti-patterns.
+* **Signed Genesis Block:** Defeated the "Root Truncation" attack by signing the initial log entry via cryptographic HMAC tied to your ephemeral session key.
+* **Format Decoupling:** `vault_format` and `app_version` are now logically separated.
+* **Automatic Migrations:** Added seamless migration from v1.x databases directly through the core loader.
 
 
 ## 🛡️ Security Architecture
@@ -85,7 +67,7 @@ No Python required. Plug and play.
     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝      ╚═════╝  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝
                                     [ SILENCE IS SECURITY ]
     ------------------------------------------------------------------------------------------
-            ARCHITECTURE: Local Encrypted Vault | ALGORITHMS: Argon2id + AES-256-GCM (v1.6.0)
+            ARCHITECTURE: Local Encrypted Vault | ALGORITHMS: Argon2id + AES-256-GCM (v1.2.0)
     ------------------------------------------------------------------------------------------
 
     [?] Master Password: 
@@ -93,7 +75,7 @@ No Python required. Plug and play.
 
     [✓] Access Granted: Vault decrypted in memory.
 
-    ----------------------------- Main Menu (v1.6.0) ------------------------------ 
+    ----------------------------- Main Menu (v1.2.0) ------------------------------ 
     [1] List         -> View accounts. Select an ID to Copy Password, Edit, or Delete.
     [2] Add          -> Store a new credential (includes strength meter).
     [3] Search       -> Deep search by service name or username.
@@ -132,10 +114,9 @@ python -m unittest -v tests/test_core.py
 | **Brute Force (Online)** | Argon2id with high memory cost makes local cracking attempts computationally expensive. |
 | **Vault Theft** | Even with the `.hpro` file, an attacker needs BOTH the Master Password and the 128-bit Secret Key. |
 | **Data Tampering** | AES-GCM provides AEAD (Authenticated Encryption with Associated Data). Any modification to the encrypted file results in a decryption failure. |
-| **Memory Persistence** | Python's memory management (Garbage Collection) does not guarantee immediate zeroing of sensitive variables. The `del` statement removes the local reference but the garbage collector does not guarantee immediate memory zeroing. The credentials may persist in the heap until GC collection. |
-| **Mitigation:** | Close the application immediately after use. For true memory-safe zeroing, a lower-level language (Rust/C) implementation is required. |
-| **Log Truncation** | The Hash-Chain ensures the integrity of intermediate logs. However, without a signed genesis block, it cannot mathematically prevent root truncation (an attacker deleting the oldest entries and replacing the genesis `prev_hash` with zeros). |
-| **Backup Permissions (Windows)** | The POSIX implementation restricts backup files to `0o600` (owner read/write). On Windows, equivalent ACL restrictions are not automatically applied, meaning local backups might be readable by other users on the same machine. |
+| **Memory Persistence** | Python's memory management (Garbage Collection) does not guarantee immediate zeroing of sensitive variables. **Mitigation:** Close the application immediately after use. |
+| **Log Truncation** | **Mitigated in v2.0.0.** The standard hash-chain protects intermediate logs, and a Session-Key derived HMAC specifically protects the Genesis block against deletion. |
+| **Backup Permissions (Windows)** | Windows ACL restrictions are not automatically applied, meaning local backups might be readable by other users. |
 
 
 ## 🛠️ Technical Specifications
@@ -175,13 +156,9 @@ This project leverages GitHub Actions to ensure stability:
 
 ## Important: Migration Notice
 
-If you are upgrading from v1.0/v1.1, please note that the database format has changed for security reasons.
-
-- Delete your old vault.hpro.
-
-- Launch v1.6.0 to generate a new vault with the updated crypto engine.
-
-- Import your passwords using option [5].
+If you are upgrading from v1.6.0, the format has changed to include cryptographic HMAC signatures for log integrity. 
+* **You do not need to delete your vault.**
+* When you launch v2.0.0 and enter your master credentials, the system will detect the old format and prompt you for automatic migration.
 
 ## 📜 License
 

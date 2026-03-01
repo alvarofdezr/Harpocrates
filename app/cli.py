@@ -23,7 +23,7 @@ BANNER = r"""
     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝      ╚═════╝  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝
                                     [ SILENCE IS SECURITY ]
     ------------------------------------------------------------------------------------------
-            ARCHITECTURE: Local Encrypted Vault | ALGORITHMS: Argon2id + AES-256-GCM (v1.6.0)
+            ARCHITECTURE: Local Encrypted Vault | ALGORITHMS: Argon2id + AES-256-GCM (v1.2.0)
     ------------------------------------------------------------------------------------------
 """
 
@@ -109,7 +109,7 @@ def run_cli():
         print(Fore.GREEN + "\n[✓] Access Granted." + Style.RESET_ALL)
         
         while True:
-            print(f"\n{'-'*30} MAIN MENU v1.6.0 {'-'*40}")
+            print(f"\n{'-'*30} MAIN MENU v1.2.0 {'-'*40}")
             print("1.  List         2. Add         3. Search")
             print("4.  Generate     5. Import      6. Exit")
             print("7.  Backup       8. Audit Log   9. HIBP Scan")

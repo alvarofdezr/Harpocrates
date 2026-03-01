@@ -188,24 +188,57 @@ class TestHarpocratesCore(unittest.TestCase):
         self.assertIn("Skipped 1 duplicates", msg)
 
     def test_log_integrity_validation_cases(self):
-        """Tests the hash-chain against valid, tampered, and truncated states."""
+        """Tests the hash-chain against valid and tampered states."""
         self.vault.add_entry("Service1", "user1", "pass1")
         self.vault.add_entry("Service2", "user2", "pass2")
         
         self.assertTrue(self.vault.verify_log_integrity())
         
-        # NOTE: This verifies detection of an altered genesis hash. 
-        # As documented in the Threat Model, without a signed genesis block, 
-        # this mathematically cannot detect "root truncation" (where an attacker 
-        # deletes the oldest logs AND sets the new oldest log's prev_hash to 64 zeros).
-        original_genesis_hash = self.vault._data['logs'][-1]['prev_hash']
-        self.vault._data['logs'][-1]['prev_hash'] = "1" * 64
+        original_hash = self.vault._data['logs'][0]['prev_hash']
+        self.vault._data['logs'][0]['prev_hash'] = "1" * 64
         self.assertFalse(self.vault.verify_log_integrity())
-        
-        self.vault._data['logs'][-1]['prev_hash'] = original_genesis_hash
+        self.vault._data['logs'][0]['prev_hash'] = original_hash
         
         self.vault._data['logs'][1]['details'] = "TAMPERED"
         self.assertFalse(self.vault.verify_log_integrity())
+
+    def test_log_integrity_detects_root_truncation(self):
+        """Ensures that deleting the oldest log and faking genesis is detected via HMAC."""
+        self.vault.add_entry("Service1", "user1", "pass1")
+        self.vault.add_entry("Service2", "user2", "pass2")
+        
+        self.vault._data['logs'].pop(-1)
+        self.vault._data['logs'][-1]['prev_hash'] = "0" * 64
+        
+        self.assertFalse(self.vault.verify_log_integrity())
+
+    def test_log_integrity_detects_tampered_genesis_hmac(self):
+        """Verifies that tampering with the stored genesis HMAC invalidates the logs."""
+        self.vault.add_entry("Service1", "user1", "pass1")
+        self.vault._data['log_genesis_hmac'] = "tampered_hmac_string"
+        self.assertFalse(self.vault.verify_log_integrity())
+
+    def test_prev_hash_type_guard(self):
+        """Ensures prev_hash type mismatch is caught to prevent exceptions during validation."""
+        self.vault.add_entry("Service1", "user1", "pass1")
+        self.vault._data['logs'][0]['prev_hash'] = 12345
+        self.assertFalse(self.vault.verify_log_integrity())
+
+    @patch('builtins.input', return_value='y')
+    def test_migration_v1_to_v2(self, mock_input):
+        """Simulates loading a v1 vault and verifies the migration upgrades the format."""
+        self.vault._data['version'] = "1.6.0"
+        self.vault._data.pop('vault_format', None)
+        self.vault._data.pop('app_version', None)
+        self.vault._data.pop('log_genesis_hmac', None)
+        self.vault.save_vault()
+        
+        migrated_vault = VaultManager(self.test_vault_file)
+        migrated_vault.load_vault(self.m_pass, self.s_key)
+        
+        self.assertEqual(migrated_vault._data['vault_format'], 2)
+        self.assertEqual(migrated_vault._data['app_version'], "2.0.0")
+        self.assertIn('log_genesis_hmac', migrated_vault._data)
 
 if __name__ == '__main__':
     unittest.main()
