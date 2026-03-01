@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "harpocrates-vault"
-version = "1.2.0"
+version = "2.0.0"
 description = "A high-security local encrypted password manager"
 readme = "README.md"
 authors = [{name = "alvarofdezr"}]

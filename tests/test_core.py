@@ -235,6 +235,9 @@ class TestHarpocratesCore(unittest.TestCase):
         
         migrated_vault = VaultManager(self.test_vault_file)
         
+        # Note: load_vault intentionally populates _session_key and _data in memory 
+        # BEFORE raising the exception. This partial initialization state allows 
+        # migrate_to_v2() to proceed without requiring re-derivation of the master keys.
         with self.assertRaises(VaultMigrationRequired):
             migrated_vault.load_vault(self.m_pass, self.s_key)
             

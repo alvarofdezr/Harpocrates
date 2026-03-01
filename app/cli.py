@@ -99,14 +99,13 @@ def run_cli():
     m_pass = getpass.getpass("[?] Master Password: ")
     s_key = getpass.getpass("[?] Secret Key: ")
     
+    access_granted = False
+    
     try:
         vault.load_vault(m_pass, s_key)
-        
-        del m_pass
-        del s_key 
-        
         vault.add_audit_event("LOGIN", "Access via CLI")
         print(Fore.GREEN + "\n[✓] Access Granted." + Style.RESET_ALL)
+        access_granted = True
         
     except VaultMigrationRequired:
         print(Fore.YELLOW + "\n[!] WARNING: Vault is using an older format (v1.x)." + Style.RESET_ALL)
@@ -115,10 +114,24 @@ def run_cli():
             vault.migrate_to_v2()
             vault.add_audit_event("SYSTEM", "Vault migrated to v2.0.0 format")
             print(Fore.GREEN + "[✓] Migration successful. Access Granted." + Style.RESET_ALL)
+            access_granted = True
         else:
             print(Fore.RED + "\n[!] Migration cancelled. Exiting..." + Style.RESET_ALL)
-            return
-        
+            
+    except AuthenticationError:
+        print(Fore.RED + "\n[!] Authentication Failed: Incorrect Master Password or Secret Key." + Style.RESET_ALL)
+        time.sleep(2)
+    except HarpocratesError as e:
+        print(Fore.RED + f"\n[!] Vault Error: {e}" + Style.RESET_ALL)
+        time.sleep(2)
+    except Exception as e:
+        print(Fore.RED + f"\n[!] Critical System Error: {e}" + Style.RESET_ALL)
+        time.sleep(2)
+
+    del m_pass
+    del s_key 
+
+    if access_granted:
         while True:
             print(f"\n{'-'*30} MAIN MENU v2.0.0 {'-'*40}")
             print("1.  List         2. Add         3. Search")
@@ -229,15 +242,7 @@ def run_cli():
                 
                 except HIBPConnectionError as e:
                     print(Fore.RED + f"\n[!] Network Error during scan: {e}" + Style.RESET_ALL)
-    except AuthenticationError:
-        print(Fore.RED + "\n[!] Authentication Failed: Incorrect Master Password or Secret Key." + Style.RESET_ALL)
-        time.sleep(2)
-    except HarpocratesError as e:
-        print(Fore.RED + f"\n[!] Vault Error: {e}" + Style.RESET_ALL)
-        time.sleep(2)
-    except Exception as e:
-        print(Fore.RED + f"\n[!] Critical System Error: {e}" + Style.RESET_ALL)
-        time.sleep(2)
+
 
 if __name__ == "__main__":
     run_cli()

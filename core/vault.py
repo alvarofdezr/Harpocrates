@@ -212,7 +212,7 @@ class VaultManager:
         message = json.dumps(logs[-1], sort_keys=True).encode('utf-8')
         calculated_hmac = hmac.new(self._session_key, message, hashlib.sha256).hexdigest()
         
-        if hmac.compare_digest(calculated_hmac, expected_hmac) is False:
+        if not hmac.compare_digest(calculated_hmac, expected_hmac):
             return False
             
         return True
