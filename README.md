@@ -67,7 +67,7 @@ No Python required. Plug and play.
     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝      ╚═════╝  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝
                                     [ SILENCE IS SECURITY ]
     ------------------------------------------------------------------------------------------
-            ARCHITECTURE: Local Encrypted Vault | ALGORITHMS: Argon2id + AES-256-GCM (v1.2.0)
+            ARCHITECTURE: Local Encrypted Vault | ALGORITHMS: Argon2id + AES-256-GCM (v2.0.0)
     ------------------------------------------------------------------------------------------
 
     [?] Master Password: 
@@ -75,7 +75,7 @@ No Python required. Plug and play.
 
     [✓] Access Granted: Vault decrypted in memory.
 
-    ----------------------------- Main Menu (v1.2.0) ------------------------------ 
+    ----------------------------- Main Menu (v2.0.0) ------------------------------ 
     [1] List         -> View accounts. Select an ID to Copy Password, Edit, or Delete.
     [2] Add          -> Store a new credential (includes strength meter).
     [3] Search       -> Deep search by service name or username.

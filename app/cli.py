@@ -7,7 +7,7 @@ from colorama import Fore, Style
 import pyperclip
 from zxcvbn import zxcvbn
 
-from core.exceptions import HIBPConnectionError, HarpocratesError, AuthenticationError
+from core.exceptions import HIBPConnectionError, HarpocratesError, AuthenticationError, VaultMigrationRequired
 from core.vault import VaultManager
 from core.crypto import HarpocratesCrypto
 from core.generator import PasswordGenerator
@@ -23,7 +23,7 @@ BANNER = r"""
     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝      ╚═════╝  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝
                                     [ SILENCE IS SECURITY ]
     ------------------------------------------------------------------------------------------
-            ARCHITECTURE: Local Encrypted Vault | ALGORITHMS: Argon2id + AES-256-GCM (v1.2.0)
+            ARCHITECTURE: Local Encrypted Vault | ALGORITHMS: Argon2id + AES-256-GCM (v2.0.0)
     ------------------------------------------------------------------------------------------
 """
 
@@ -108,8 +108,19 @@ def run_cli():
         vault.add_audit_event("LOGIN", "Access via CLI")
         print(Fore.GREEN + "\n[✓] Access Granted." + Style.RESET_ALL)
         
+    except VaultMigrationRequired:
+        print(Fore.YELLOW + "\n[!] WARNING: Vault is using an older format (v1.x)." + Style.RESET_ALL)
+        ans = input("Migrate vault to v2 format? (y/n): ")
+        if ans.lower() == 'y':
+            vault.migrate_to_v2()
+            vault.add_audit_event("SYSTEM", "Vault migrated to v2.0.0 format")
+            print(Fore.GREEN + "[✓] Migration successful. Access Granted." + Style.RESET_ALL)
+        else:
+            print(Fore.RED + "\n[!] Migration cancelled. Exiting..." + Style.RESET_ALL)
+            return
+        
         while True:
-            print(f"\n{'-'*30} MAIN MENU v1.2.0 {'-'*40}")
+            print(f"\n{'-'*30} MAIN MENU v2.0.0 {'-'*40}")
             print("1.  List         2. Add         3. Search")
             print("4.  Generate     5. Import      6. Exit")
             print("7.  Backup       8. Audit Log   9. HIBP Scan")
@@ -218,7 +229,6 @@ def run_cli():
                 
                 except HIBPConnectionError as e:
                     print(Fore.RED + f"\n[!] Network Error during scan: {e}" + Style.RESET_ALL)
-
     except AuthenticationError:
         print(Fore.RED + "\n[!] Authentication Failed: Incorrect Master Password or Secret Key." + Style.RESET_ALL)
         time.sleep(2)

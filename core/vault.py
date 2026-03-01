@@ -5,7 +5,7 @@ import hashlib
 import hmac
 from datetime import datetime
 from core.crypto import HarpocratesCrypto
-from core.exceptions import VaultNotFoundError, VaultCorruptError
+from core.exceptions import VaultNotFoundError, VaultCorruptError, VaultMigrationRequired
 
 VERSION = "2.0.0"
 VAULT_FORMAT = 2
@@ -41,7 +41,7 @@ class VaultManager:
         self._data['log_genesis_hmac'] = hmac.new(self._session_key, message, hashlib.sha256).hexdigest()
 
     def load_vault(self, master_password: str, secret_key: str) -> bool:
-        """Loads and decrypts the vault. Handles automatic migration from v1 to v2."""
+        """Loads and decrypts the vault. Validates format versions."""
         if not os.path.exists(self.vault_path):
             raise VaultNotFoundError(f"Vault file not found: {self.vault_path}")
             
@@ -54,24 +54,24 @@ class VaultManager:
         decrypted_json = self.crypto.decrypt_with_session_key(encrypted_data, self._session_key, self._salt)
         self._data = json.loads(decrypted_json)
         
-        # Migration logic
         fmt = self._data.get('vault_format', 1)
         if fmt == 1:
-            print("\n[!] WARNING: Vault is using an older format (v1.x).")
-            ans = input("Migrate vault to v2 format? (y/n): ")
-            if ans.lower() == 'y':
-                self._data['vault_format'] = VAULT_FORMAT
-                self._data['app_version'] = VERSION
-                self._data.pop('version', None) 
-                self._update_genesis_hmac()
-                self.save_vault()
-                print("[✓] Migration successful.")
-            else:
-                raise VaultNotFoundError("Migration cancelled by user.")
+            raise VaultMigrationRequired("Vault is v1 format. Migration required.")
         elif fmt > VAULT_FORMAT:
             raise VaultCorruptError("Vault format is newer than this application version.")
 
         return True
+
+    def migrate_to_v2(self) -> None:
+        """Upgrades an already decrypted v1 vault to the v2 schema with a signed genesis block."""
+        if self._data.get('vault_format') == VAULT_FORMAT:
+            return
+            
+        self._data['vault_format'] = VAULT_FORMAT
+        self._data['app_version'] = VERSION
+        self._data.pop('version', None)
+        self._update_genesis_hmac()
+        self.save_vault()
 
     def save_vault(self) -> None:
         """Atomically saves the encrypted vault to disk."""

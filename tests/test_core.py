@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from core.exceptions import VaultMigrationRequired
 from core.vault import VaultManager
 from core.crypto import HarpocratesCrypto
 from core.generator import PasswordGenerator
@@ -224,9 +225,8 @@ class TestHarpocratesCore(unittest.TestCase):
         self.vault._data['logs'][0]['prev_hash'] = 12345
         self.assertFalse(self.vault.verify_log_integrity())
 
-    @patch('builtins.input', return_value='y')
-    def test_migration_v1_to_v2(self, mock_input):
-        """Simulates loading a v1 vault and verifies the migration upgrades the format."""
+    def test_migration_v1_to_v2(self):
+        """Simulates loading a v1 vault and verifies the exception and migration process."""
         self.vault._data['version'] = "1.6.0"
         self.vault._data.pop('vault_format', None)
         self.vault._data.pop('app_version', None)
@@ -234,7 +234,11 @@ class TestHarpocratesCore(unittest.TestCase):
         self.vault.save_vault()
         
         migrated_vault = VaultManager(self.test_vault_file)
-        migrated_vault.load_vault(self.m_pass, self.s_key)
+        
+        with self.assertRaises(VaultMigrationRequired):
+            migrated_vault.load_vault(self.m_pass, self.s_key)
+            
+        migrated_vault.migrate_to_v2()
         
         self.assertEqual(migrated_vault._data['vault_format'], 2)
         self.assertEqual(migrated_vault._data['app_version'], "2.0.0")

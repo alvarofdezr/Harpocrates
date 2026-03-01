@@ -17,3 +17,7 @@ class VaultNotFoundError(HarpocratesError):
 class HIBPConnectionError(HarpocratesError):
     """Raised when the HIBP API is unreachable."""
     pass
+
+class VaultMigrationRequired(HarpocratesError):
+    """Raised when the vault requires migration to a newer format."""
+    pass
