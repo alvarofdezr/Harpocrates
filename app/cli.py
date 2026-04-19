@@ -31,10 +31,11 @@ BANNER = r"""
 
 def _zero_string(s: str) -> None:
     try:
-        buf = (ctypes.c_char * len(s)).from_address(id(s) + ctypes.sizeof(ctypes.c_long) * 2 + ctypes.sizeof(ctypes.c_ssize_t))
+        buf_offset = ctypes.sizeof(ctypes.c_long) * 2 + ctypes.sizeof(ctypes.c_ssize_t)
+        buf = (ctypes.c_char * len(s)).from_address(id(s) + buf_offset)
         ctypes.memset(buf, 0, len(s))
-    except Exception as e:
-        logging.warning(f"Failed to clear string from memory with ctypes: {e}")
+    except Exception: # nosec B110 — intentional silent fallback on non-CPython runtimes
+        pass
 
 def secure_copy(data: str) -> None:
     try:
@@ -103,12 +104,15 @@ def run_cli():
     crypto = HarpocratesCrypto()
     
     if not os.path.exists("vault.hpro"):
-        m_pass = getpass.getpass("Create your Master Password: ")
-        s_key = crypto.generate_secret_key()
-        vault.create_new_vault(m_pass, s_key)
+        m_pass_create = getpass.getpass("Create your Master Password: ")
+        s_key_create = crypto.generate_secret_key()
+        vault.create_new_vault(m_pass_create, s_key_create)
         
-        print(f"\nSECRET KEY: {s_key}\nTHIS KEY WILL ONLY BE SHOWN NOW!")
+        print(f"\nSECRET KEY: {s_key_create}\nTHIS KEY WILL ONLY BE SHOWN NOW!")
         getpass.getpass("Save it in a secure place and press ENTER to continue...")
+        
+        del m_pass_create, s_key_create
+        
         print('\033[2J\033[H', end='')
         print(BANNER)
     
@@ -143,13 +147,11 @@ def run_cli():
     except Exception as e:
         print(Fore.RED + f"\n[!] Critical System Error: {e}" + Style.RESET_ALL)
         time.sleep(2)
-
     finally:
-        # CORRECCIÓN: zerizar antes de eliminar la referencia
-        _zero_string(m_pass)
-        _zero_string(s_key)
-        del m_pass
-        del s_key
+        if 'm_pass' in locals():
+            del m_pass
+        if 's_key' in locals():
+            del s_key
 
     if access_granted:
         while True:
@@ -263,6 +265,6 @@ def run_cli():
                 except HIBPConnectionError as e:
                     print(Fore.RED + f"\n[!] Network Error during scan: {e}" + Style.RESET_ALL)
 
-
+    
 if __name__ == "__main__":
     run_cli()

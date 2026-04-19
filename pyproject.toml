@@ -15,7 +15,8 @@ dependencies = [
     "pyperclip==1.11.0",
     "colorama==0.4.6",
     "requests==2.33.0",
-    "zxcvbn==4.4.28"
+    "zxcvbn==4.4.28",
+    "pygements==2.20.0"
 ]
 
 [project.scripts]

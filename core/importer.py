@@ -16,7 +16,7 @@ def import_from_csv(file_path: str, vault_manager: VaultManager) -> Tuple[int, s
     try:
         resolved = Path(file_path).resolve(strict=True)
     except (FileNotFoundError, OSError):
-        return 0, f"{Fore.RED}Error: archu¡ive not found.: {file_path}{Style.RESET_ALL}"
+        return 0, f"{Fore.RED}Error: file not found or inaccessible.{Style.RESET_ALL}"
     
     if not resolved.is_file():
         return 0, f"{Fore.RED}Error: the path does not point to a file.{Style.RESET_ALL}"
@@ -28,7 +28,7 @@ def import_from_csv(file_path: str, vault_manager: VaultManager) -> Tuple[int, s
         entries = vault_manager.get_entries()
         existing_signatures = {f"{e['title'].strip().lower()}|{e['username'].strip().lower()}" for e in entries}
             
-        with open(file_path, newline='', encoding='utf-8') as csvfile:
+        with open(resolved, newline='', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
             
             field_map = {k.lower(): k for k in reader.fieldnames if k}

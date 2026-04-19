@@ -240,9 +240,13 @@ class TestHarpocratesCore(unittest.TestCase):
         # migrate_to_v2() to proceed without requiring re-derivation of the master keys.
         with self.assertRaises(VaultMigrationRequired):
             migrated_vault.load_vault(self.m_pass, self.s_key)
-            
+    
+        self.assertTrue(hasattr(migrated_vault, '_pending_migration_data'))
+        self.assertIsNone(migrated_vault._data)
+        
         migrated_vault.migrate_to_v2()
         
+        self.assertFalse(hasattr(migrated_vault, '_pending_migration_data'))
         self.assertEqual(migrated_vault._data['vault_format'], 2)
         self.assertEqual(migrated_vault._data['app_version'], "2.0.0")
         self.assertIn('log_genesis_hmac', migrated_vault._data)
