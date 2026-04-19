@@ -10,11 +10,11 @@ readme = "README.md"
 authors = [{name = "alvarofdezr"}]
 requires-python = ">=3.10"
 dependencies = [
-    "cryptography==46.0.5",
+    "cryptography==46.0.7",
     "argon2-cffi==25.1.0",
     "pyperclip==1.11.0",
     "colorama==0.4.6",
-    "requests==2.32.4",
+    "requests==2.33.0",
     "zxcvbn==4.4.28"
 ]
 

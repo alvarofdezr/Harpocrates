@@ -1,8 +1,10 @@
+import logging
 import os
 import threading
 import time
 import shutil
 import getpass
+import ctypes
 from colorama import Fore, Style
 import pyperclip
 from zxcvbn import zxcvbn
@@ -27,16 +29,30 @@ BANNER = r"""
     ------------------------------------------------------------------------------------------
 """
 
+def _zero_string(s: str) -> None:
+    try:
+        buf = (ctypes.c_char * len(s)).from_address(id(s) + ctypes.sizeof(ctypes.c_long) * 2 + ctypes.sizeof(ctypes.c_ssize_t))
+        ctypes.memset(buf, 0, len(s))
+    except Exception as e:
+        logging.warning(f"Failed to clear string from memory with ctypes: {e}")
+
 def secure_copy(data: str) -> None:
     try:
         pyperclip.copy(data)
-        print(f"\n[i] Clipboard: Data copied. It will be cleared in 20s.")
-        def clear():
-            time.sleep(20)
+        print(f"\n[i] Clipboard: data copied. It will be cleaned in 20 s.")
+    except pyperclip.PyperclipException:
+        print(Fore.YELLOW + "[!] Could not copy to clipboard." + Style.RESET_ALL)
+        return
+
+    def clear():
+        time.sleep(20)
+        try:
             pyperclip.copy("")
-        threading.Thread(target=clear, daemon=True).start()
-    except Exception:
-        print(Fore.YELLOW + "[!] Could not access the clipboard." + Style.RESET_ALL)
+        except pyperclip.PyperclipException:
+            pass 
+
+    t = threading.Thread(target=clear, daemon=True)
+    t.start()
 
 def check_strength(pw: str) -> str:
     results = zxcvbn(pw)
@@ -128,8 +144,12 @@ def run_cli():
         print(Fore.RED + f"\n[!] Critical System Error: {e}" + Style.RESET_ALL)
         time.sleep(2)
 
-    del m_pass
-    del s_key 
+    finally:
+        # CORRECCIÓN: zerizar antes de eliminar la referencia
+        _zero_string(m_pass)
+        _zero_string(s_key)
+        del m_pass
+        del s_key
 
     if access_granted:
         while True:

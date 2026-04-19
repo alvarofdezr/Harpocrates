@@ -1,4 +1,5 @@
 import csv
+from pathlib import Path
 from typing import Tuple
 from colorama import Fore, Style
 from core.vault import VaultManager
@@ -11,6 +12,17 @@ def import_from_csv(file_path: str, vault_manager: VaultManager) -> Tuple[int, s
     imported_count = 0
     skipped_details = [] 
     buffer_entries = [] 
+    
+    try:
+        resolved = Path(file_path).resolve(strict=True)
+    except (FileNotFoundError, OSError):
+        return 0, f"{Fore.RED}Error: archu¡ive not found.: {file_path}{Style.RESET_ALL}"
+    
+    if not resolved.is_file():
+        return 0, f"{Fore.RED}Error: the path does not point to a file.{Style.RESET_ALL}"
+    
+    if resolved.suffix.lower() != '.csv':
+        return 0, f"{Fore.RED}Error: the file must have a .csv extension.{Style.RESET_ALL}"
     
     try:
         entries = vault_manager.get_entries()

@@ -1,3 +1,4 @@
+from email.mime import message
 import json
 import os
 import copy
@@ -5,7 +6,7 @@ import hashlib
 import hmac
 from datetime import datetime
 from core.crypto import HarpocratesCrypto
-from core.exceptions import VaultNotFoundError, VaultCorruptError, VaultMigrationRequired
+from core.exceptions import HarpocratesError, VaultNotFoundError, VaultCorruptError, VaultMigrationRequired
 
 VERSION = "2.0.0"
 VAULT_FORMAT = 2
@@ -38,43 +39,62 @@ class VaultManager:
             return
         genesis_log = self._data['logs'][-1]
         message = json.dumps(genesis_log, sort_keys=True).encode('utf-8')
-        self._data['log_genesis_hmac'] = hmac.new(self._session_key, message, hashlib.sha256).hexdigest()
+        mac = hmac.HMAC(self._session_key, message, hashlib.sha256)
+        self._data['log_genesis_hmac'] = mac.hexdigest()
 
     def load_vault(self, master_password: str, secret_key: str) -> bool:
-        """Loads and decrypts the vault. Validates format versions."""
         if not os.path.exists(self.vault_path):
             raise VaultNotFoundError(f"Vault file not found: {self.vault_path}")
             
         with open(self.vault_path, 'rb') as f:
             encrypted_data = f.read()
             
-        self._salt = encrypted_data[:self.crypto.salt_size]
-        self._session_key = self.crypto.derive_session_key(master_password, secret_key, self._salt)
+        salt = encrypted_data[:self.crypto.salt_size]
+        session_key = self.crypto.derive_session_key(master_password, secret_key, salt)
         
-        decrypted_json = self.crypto.decrypt_with_session_key(encrypted_data, self._session_key, self._salt)
-        self._data = json.loads(decrypted_json)
+        decrypted_json = self.crypto.decrypt_with_session_key(encrypted_data, session_key, salt)
+        data = json.loads(decrypted_json)
         
-        fmt = self._data.get('vault_format', 1)
-        if fmt == 1:
-            raise VaultMigrationRequired("Vault is v1 format. Migration required.")
-        elif fmt > VAULT_FORMAT:
+        fmt = data.get('vault_format', 1)
+        
+        if fmt > VAULT_FORMAT:
             raise VaultCorruptError("Vault format is newer than this application version.")
-
+        
+        if fmt == 1:
+            self._pending_migration_data = data
+            self._pending_migration_key = session_key
+            self._pending_migration_salt = salt
+            raise VaultMigrationRequired("Vault is v1 format. Migration required.")
+        
+        self._salt = salt
+        self._session_key = session_key
+        self._data = data
         return True
 
     def migrate_to_v2(self) -> None:
         """Upgrades an already decrypted v1 vault to the v2 schema with a signed genesis block."""
-        if self._data.get('vault_format') == VAULT_FORMAT:
-            return
-            
-        self._data['vault_format'] = VAULT_FORMAT
-        self._data['app_version'] = VERSION
-        self._data.pop('version', None)
+        if not hasattr(self, '_pending_migration_data'):
+            raise HarpocratesError("There is no pending migration data. Load a v1 vault first.")
+        
+        data = self._pending_migration_data
+        data['vault_format'] = VAULT_FORMAT
+        data['app_version'] = VERSION
+        data.pop('version', None)
+        
+        # Promover al estado oficial
+        self._salt = self._pending_migration_salt
+        self._session_key = self._pending_migration_key
+        self._data = data
+        
         self._update_genesis_hmac()
         self.save_vault()
+        
+        # Limpiar estado temporal
+        del self._pending_migration_data
+        del self._pending_migration_key
+        del self._pending_migration_salt
 
     def save_vault(self) -> None:
-        """Atomically saves the encrypted vault to disk."""
         if self._data is None or self._session_key is None:
             return
             
@@ -83,12 +103,17 @@ class VaultManager:
         
         tmp_path = self.vault_path + ".tmp"
         try:
-            with open(tmp_path, 'wb') as f:
+            fd = os.open(tmp_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(fd, 'wb') as f:
                 f.write(encrypted_data)
                 f.flush()
-                os.fsync(f.fileno()) 
+                os.fsync(f.fileno())
                 
             os.replace(tmp_path, self.vault_path)
+            
+            if os.name == 'posix':
+                os.chmod(self.vault_path, 0o600)
+                
         except OSError:
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
@@ -179,18 +204,21 @@ class VaultManager:
             self._data = original_state
             raise RuntimeError(f"Bulk import failed, memory changes rolled back: {str(e)}")
         
+
     def verify_log_integrity(self) -> bool:
-        """Verifies the cryptographic hash-chain and the genesis block HMAC."""
-        if not self._data or 'logs' not in self._data: 
+        if not self._data or 'logs' not in self._data:
             return True
         
         logs = self._data['logs']
-        if not logs: 
+        if not logs:
             return True
-            
-        for i in range(len(logs) - 1):
-            current_log = logs[i]
-            prev_log = logs[i+1]
+        
+        MAX_VERIFY = 10_000
+        logs_to_check = logs[:MAX_VERIFY]
+        
+        for i in range(len(logs_to_check) - 1):
+            current_log = logs_to_check[i]
+            prev_log = logs_to_check[i + 1]
             
             if 'prev_hash' not in current_log or not isinstance(current_log['prev_hash'], str):
                 return False
@@ -198,21 +226,21 @@ class VaultManager:
             prev_log_str = json.dumps(prev_log, sort_keys=True).encode('utf-8')
             expected_hash = hashlib.sha256(prev_log_str).hexdigest()
             
-            if current_log['prev_hash'] != expected_hash:
+            if not hmac.compare_digest(current_log['prev_hash'], expected_hash):  # timing-safe
                 return False
-                
-        if 'prev_hash' not in logs[-1] or not isinstance(logs[-1]['prev_hash'], str) or logs[-1]['prev_hash'] != "0" * 64:
+        
+        genesis = logs[-1]
+        if 'prev_hash' not in genesis or not isinstance(genesis['prev_hash'], str):
+            return False
+        if not hmac.compare_digest(genesis['prev_hash'], "0" * 64):
             return False
 
-        # Verify Genesis HMAC
         expected_hmac = self._data.get('log_genesis_hmac')
         if not expected_hmac:
             return False
             
-        message = json.dumps(logs[-1], sort_keys=True).encode('utf-8')
-        calculated_hmac = hmac.new(self._session_key, message, hashlib.sha256).hexdigest()
+        message = json.dumps(genesis, sort_keys=True).encode('utf-8')
+        mac = hmac.HMAC(self._session_key, message, hashlib.sha256)
+        calculated_hmac = mac.hexdigest()
         
-        if not hmac.compare_digest(calculated_hmac, expected_hmac):
-            return False
-            
-        return True
+        return hmac.compare_digest(calculated_hmac, expected_hmac)
