@@ -1,5 +1,6 @@
-import ctypes
+
 from typing import Any, Type, Optional
+
 
 class SecureString:
     """
@@ -11,7 +12,7 @@ class SecureString:
     def __init__(self, data: str) -> None:
         if not isinstance(data, str):
             raise TypeError("SecureString requires a string input.")
-        self._buffer: bytearray = bytearray(data, 'utf-8')
+        self._buffer: bytearray = bytearray(data, "utf-8")
 
     def __enter__(self) -> bytearray:
         return self._buffer
@@ -30,7 +31,7 @@ class SecureString:
 
     def destroy(self) -> None:
         """Overwrites the internal bytearray with zeros."""
-        if hasattr(self, '_buffer') and self._buffer is not None:
+        if hasattr(self, "_buffer") and self._buffer is not None:
             # Explicitly overwrite the mutable bytearray with zeros
             for i in range(len(self._buffer)):
                 self._buffer[i] = 0
