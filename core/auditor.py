@@ -1,6 +1,6 @@
 from functools import lru_cache
 import hashlib
-import requests
+import requests  # type: ignore
 from core.exceptions import HIBPConnectionError
 
 
