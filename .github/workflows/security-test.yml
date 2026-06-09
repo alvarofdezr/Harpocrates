@@ -17,7 +17,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install .
-        pip install bandit pip-audit mypy black flake8
+        pip install bandit pip-audit mypy black flake8 types-requests
         
     - name: Format Check (Black)
       run: black --check --target-version py310 core/ app/

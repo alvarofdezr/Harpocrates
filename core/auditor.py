@@ -1,6 +1,6 @@
 from functools import lru_cache
 import hashlib
-import requests  # type: ignore
+import requests
 from core.exceptions import HIBPConnectionError
 
 
@@ -11,7 +11,9 @@ class PasswordAuditor:
         """Checks if a password has been leaked using HIBP K-Anonymity."""
         # SHA1 requerido por HIBP API para K-Anonymity
         sha1_password = (
-            hashlib.sha1(password.encode("utf-8"), usedforsecurity=False).hexdigest().upper()
+            hashlib.sha1(password.encode("utf-8"), usedforsecurity=False)
+            .hexdigest()
+            .upper()
         )
 
         prefix = sha1_password[:5]
