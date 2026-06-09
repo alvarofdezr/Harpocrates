@@ -9,10 +9,10 @@ class PasswordAuditor:
     @lru_cache(maxsize=512)
     def check_pwned(password: str) -> int:
         """Checks if a password has been leaked using HIBP K-Anonymity."""
-        # nosec - SHA1 requerido por HIBP API para K-Anonymity
+        # SHA1 requerido por HIBP API para K-Anonymity
         sha1_password = (
-            hashlib.sha1(password.encode("utf-8")).hexdigest().upper()
-        )  # nosec
+            hashlib.sha1(password.encode("utf-8"), usedforsecurity=False).hexdigest().upper()
+        )
 
         prefix = sha1_password[:5]
         suffix = sha1_password[5:]
