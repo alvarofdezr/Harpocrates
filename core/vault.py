@@ -4,19 +4,21 @@ import copy
 import hashlib
 import hmac
 from datetime import datetime
+from typing import Any, Optional
 from core.crypto import HarpocratesCrypto
 from core.exceptions import HarpocratesError, VaultNotFoundError, VaultCorruptError, VaultMigrationRequired
+from core.config import config
 
 VERSION = "2.0.0"
 VAULT_FORMAT = 2
 
 class VaultManager:
-    def __init__(self, vault_path: str = "vault.hpro") -> None:
-        self.vault_path = os.path.abspath(vault_path)
-        self.crypto = HarpocratesCrypto()
-        self._data = None
-        self._session_key = None
-        self._salt = None
+    def __init__(self, vault_path: str = config.vault_path) -> None:
+        self.vault_path: str = os.path.abspath(vault_path)
+        self.crypto: HarpocratesCrypto = HarpocratesCrypto()
+        self._data: Optional[dict[str, Any]] = None
+        self._session_key: Optional[bytes] = None
+        self._salt: Optional[bytes] = None
 
     def create_new_vault(self, master_password: str, secret_key: str) -> None:
         """Initializes a new vault with the latest schema and a signed genesis log."""
@@ -34,7 +36,7 @@ class VaultManager:
 
     def _update_genesis_hmac(self) -> None:
         """Calculates and stores the HMAC for the genesis block (the oldest log)."""
-        if not self._data or not self._data.get('logs'):
+        if not self._data or not self._data.get('logs') or not self._session_key:
             return
         genesis_log = self._data['logs'][-1]
         message = json.dumps(genesis_log, sort_keys=True).encode('utf-8')
@@ -94,7 +96,7 @@ class VaultManager:
         del self._pending_migration_salt
 
     def save_vault(self) -> None:
-        if self._data is None or self._session_key is None:
+        if self._data is None or self._session_key is None or self._salt is None:
             return
             
         json_str = json.dumps(self._data)
@@ -118,16 +120,18 @@ class VaultManager:
                 os.remove(tmp_path)
             raise
 
-    def get_entries(self) -> list:
+    def get_entries(self) -> list[dict[str, Any]]:
         """Returns a deep copy to prevent external mutation of internal state."""
-        return copy.deepcopy(self._data.get('entries', []))
+        return copy.deepcopy(self._data.get('entries', [])) if self._data else []
 
-    def get_logs(self) -> list:
+    def get_logs(self) -> list[dict[str, Any]]:
         """Returns a deep copy of the audit logs."""
-        return copy.deepcopy(self._data.get('logs', []))
+        return copy.deepcopy(self._data.get('logs', [])) if self._data else []
 
     def _append_log(self, action: str, details: str) -> None:
         """Appends a log entry using a cryptographic Hash-Chain for integrity."""
+        if self._data is None:
+            return
         prev_hash = "0" * 64
         if 'logs' not in self._data: 
             self._data['logs'] = []
@@ -150,6 +154,7 @@ class VaultManager:
         self.save_vault()
 
     def add_entry(self, app_name: str, username: str, password: str, url: str = "", notes: str = "") -> bool:
+        if self._data is None: return False
         new_entry = {
             "title": app_name, "username": username, "password": password,
             "url": url, "notes": notes, "created_at": datetime.now().isoformat()
@@ -160,6 +165,7 @@ class VaultManager:
         return True
 
     def delete_entry(self, index: int) -> bool:
+        if not self._data: return False
         try:
             removed = self._data['entries'].pop(index)
             self._append_log("DELETE", f"Entry removed: {removed['title']}")
@@ -168,7 +174,8 @@ class VaultManager:
         except IndexError:
             return False
 
-    def update_entry(self, index: int, new_data: dict) -> bool:
+    def update_entry(self, index: int, new_data: dict[str, str]) -> bool:
+        if not self._data: return False
         try:
             entry = self._data['entries'][index]
             for k, v in new_data.items():
@@ -180,9 +187,9 @@ class VaultManager:
         except IndexError:
             return False
 
-    def add_entries_bulk(self, new_entries_data: list) -> bool:
+    def add_entries_bulk(self, new_entries_data: list[dict[str, Any]]) -> bool:
         """Atomically imports multiple entries, rolling back on failure."""
-        if not new_entries_data:
+        if not new_entries_data or self._data is None:
             return True
             
         original_state = copy.deepcopy(self._data)
@@ -235,7 +242,7 @@ class VaultManager:
             return False
 
         expected_hmac = self._data.get('log_genesis_hmac')
-        if not expected_hmac:
+        if not expected_hmac or not self._session_key:
             return False
             
         message = json.dumps(genesis, sort_keys=True).encode('utf-8')

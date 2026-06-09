@@ -17,7 +17,16 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install .
-        pip install bandit pip-audit
+        pip install bandit pip-audit mypy black flake8
+        
+    - name: Format Check (Black)
+      run: black --check core/ app/
+      
+    - name: Lint (Flake8)
+      run: flake8 core/ app/ --max-line-length=120
+      
+    - name: Type Check (Mypy)
+      run: mypy --strict core/ app/
         
     - name: Run Unit Tests
       run: python -m unittest discover tests

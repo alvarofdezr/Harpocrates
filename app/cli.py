@@ -4,10 +4,10 @@ import threading
 import time
 import shutil
 import getpass
-import ctypes
-from colorama import Fore, Style
-import pyperclip
-from zxcvbn import zxcvbn
+import sys
+from colorama import Fore, Style  # type: ignore
+import pyperclip  # type: ignore
+from zxcvbn import zxcvbn  # type: ignore
 
 from core.exceptions import HIBPConnectionError, HarpocratesError, AuthenticationError, VaultMigrationRequired
 from core.vault import VaultManager
@@ -15,6 +15,7 @@ from core.crypto import HarpocratesCrypto
 from core.generator import PasswordGenerator
 from core.importer import import_from_csv
 from core.auditor import PasswordAuditor  
+from core.secure_memory import SecureString
 
 BANNER = r"""
     ██╗  ██╗ █████╗ ██████╗ ██████╗  ██████╗  ██████╗██████╗  █████╗ ████████╗███████╗███████╗
@@ -29,13 +30,19 @@ BANNER = r"""
     ------------------------------------------------------------------------------------------
 """
 
-def _zero_string(s: str) -> None:
-    try:
-        buf_offset = ctypes.sizeof(ctypes.c_long) * 2 + ctypes.sizeof(ctypes.c_ssize_t)
-        buf = (ctypes.c_char * len(s)).from_address(id(s) + buf_offset)
-        ctypes.memset(buf, 0, len(s))
-    except Exception: # nosec B110 — intentional silent fallback on non-CPython runtimes
-        pass
+INACTIVITY_TIMEOUT = 300 # 5 minutes
+last_activity_time = time.time()
+
+def update_activity() -> None:
+    global last_activity_time
+    last_activity_time = time.time()
+
+def auto_lock_monitor() -> None:
+    while True:
+        time.sleep(5)
+        if time.time() - last_activity_time > INACTIVITY_TIMEOUT:
+            print(Fore.RED + "\n[!] Session locked due to inactivity. Exiting for security." + Style.RESET_ALL)
+            os._exit(0)
 
 def secure_copy(data: str) -> None:
     try:
@@ -45,7 +52,7 @@ def secure_copy(data: str) -> None:
         print(Fore.YELLOW + "[!] Could not copy to clipboard." + Style.RESET_ALL)
         return
 
-    def clear():
+    def clear() -> None:
         time.sleep(20)
         try:
             pyperclip.copy("")
@@ -67,65 +74,192 @@ def check_strength(pw: str) -> str:
         return f"{Fore.RED}WEAK (Score: {score}/4) - {feedback}{Style.RESET_ALL}"
     return f"{Fore.GREEN}STRONG (Score: {score}/4){Style.RESET_ALL}"
 
-def entry_action_menu(vault, entry, index):
-    while True:
-        print(f"\nService: {Fore.CYAN}{entry['title']}{Style.RESET_ALL} | Username: {entry['username']}")
-        if entry.get('notes'): print(f"Notes: {Fore.YELLOW}{entry['notes']}{Style.RESET_ALL}")
-        
-        print("\n1. Copy Password  2. Edit  3. Delete  4. Back")
-        op = input("> ")
-        
-        if op == '1':
-            secure_copy(entry['password'])
-            break
-        elif op == '2':
-            print("--- Leave empty to keep unchanged ---")
-            chg = {}
-            for field in ['title', 'username', 'password', 'url', 'notes']:
-                val = input(f"{field.capitalize()}: ")
-                if val: chg[field] = val
-            if chg:
-                vault.update_entry(index, chg)
-                print(Fore.GREEN + "[✓] Updated successfully." + Style.RESET_ALL)
-                break
-        elif op == '3':
-            if input("Delete? (y/n): ").lower() == 'y':
-                vault.delete_entry(index)
-                print(Fore.RED + "[✓] Deleted successfully." + Style.RESET_ALL)
-                return True
-        elif op == '4': break
-    return False
+class CommandDispatcher:
+    def __init__(self, vault: VaultManager):
+        self.vault = vault
+        self.commands = {
+            '1': self.cmd_list,
+            '2': self.cmd_search,
+            '3': self.cmd_add,
+            '4': self.cmd_generate,
+            '5': self.cmd_import,
+            '6': self.cmd_backup,
+            '7': self.cmd_audit,
+            '8': self.cmd_hibp,
+            '9': self.cmd_exit
+        }
 
-def run_cli():
-    print('\033[2J\033[H', end='') 
+    def dispatch(self, op: str) -> bool:
+        update_activity()
+        cmd = self.commands.get(op)
+        if cmd:
+            return cmd()
+        return True # Continue loop if invalid command
+
+    def entry_action_menu(self, entry: dict[str, str], index: int) -> bool:
+        while True:
+            update_activity()
+            print(f"\nService: {Fore.CYAN}{entry['title']}{Style.RESET_ALL} | Username: {entry['username']}")
+            if entry.get('notes'): print(f"Notes: {Fore.YELLOW}{entry['notes']}{Style.RESET_ALL}")
+            
+            print("\n1. Copy Password  2. Edit  3. Delete  4. Back")
+            op = input("> ")
+            update_activity()
+            
+            if op == '1':
+                secure_copy(entry['password'])
+                break
+            elif op == '2':
+                print("--- Leave empty to keep unchanged ---")
+                chg = {}
+                for field in ['title', 'username', 'password', 'url', 'notes']:
+                    val = input(f"{field.capitalize()}: ")
+                    if val: chg[field] = val
+                if chg:
+                    self.vault.update_entry(index, chg)
+                    print(Fore.GREEN + "[✓] Updated successfully." + Style.RESET_ALL)
+                    break
+            elif op == '3':
+                if input("Delete? (y/n): ").lower() == 'y':
+                    self.vault.delete_entry(index)
+                    print(Fore.RED + "[✓] Deleted successfully." + Style.RESET_ALL)
+                    return True
+            elif op == '4': break
+        return False
+
+    def cmd_list(self) -> bool:
+        entries = self.vault.get_entries()
+        print(f"\nID    | {'SERVICE':<40} | USERNAME")
+        print("-" * 60)
+        for i, e in enumerate(entries):
+            print(f"{i:<4} | {e['title']:<40} | {e['username']}")
+        sel = input("\nID to manage (Enter to go back): ")
+        if sel.isdigit() and int(sel) < len(entries):
+            self.entry_action_menu(entries[int(sel)], int(sel))
+        return True
+
+    def cmd_add(self) -> bool:
+        t = ""
+        while not t.strip(): t = input("Service (required): ").strip()
+        u = ""
+        while not u.strip(): u = input("Username (required): ").strip()
+        
+        gen_prompt = input("Auto-generate password? (y/n): ").lower()
+        if gen_prompt == 'y':
+            p = PasswordGenerator.generate(24)
+            print(f"Generated Password: {Fore.GREEN}{p}{Style.RESET_ALL}")
+            if input("Copy to clipboard? (y/n): ").lower() == 'y': secure_copy(p)
+        else:
+            p = ""
+            while not p: p = getpass.getpass("Password (required): ")
+
+        print(f"Strength: {check_strength(p)}")
+        self.vault.add_entry(t, u, p, input("URL (optional): "), input("Notes (optional): "))
+        print(Fore.GREEN + "[✓] Saved successfully." + Style.RESET_ALL)
+        return True
+
+    def cmd_search(self) -> bool:
+        q = input("Search: ").lower()
+        entries = self.vault.get_entries()
+        res = [(i,e) for i,e in enumerate(entries) if q in e['title'].lower()]
+        for i, (idx, e) in enumerate(res): print(f"[{i}] {e['title']}")
+        if res:
+            sel = input("Select ID: ")
+            if sel.isdigit() and int(sel) < len(res):
+                self.entry_action_menu(res[int(sel)][1], res[int(sel)][0])
+        return True
+
+    def cmd_generate(self) -> bool:
+        pw = PasswordGenerator.generate(32)
+        print(f"Generated Password: {Fore.GREEN}{pw}{Style.RESET_ALL}")
+        if input("Copy to clipboard? (y/n): ").lower() == 'y': secure_copy(pw)
+        return True
+
+    def cmd_import(self) -> bool:
+        path = input("CSV Path: ").strip('"')
+        if input("Import? (y/n): ").lower() == 'y':
+            qty, msg = import_from_csv(path, self.vault) 
+            print(msg)
+            if qty > 0: self.vault.add_audit_event("IMPORT", f"Imported {qty} items")
+        return True
+
+    def cmd_exit(self) -> bool:
+        print("\n[!] Closing session securely...")
+        return False
+
+    def cmd_backup(self) -> bool:
+        import os as os_mod
+        bk = f"backup_{os_mod.urandom(6).hex()}.hpro"
+        shutil.copy("vault.hpro", bk)
+        if os.name == 'posix':
+            os.chmod(bk, 0o600)
+        self.vault.add_audit_event("BACKUP", f"Created {bk}")
+        print(Fore.GREEN + f"[✓] Backup created securely: {bk}" + Style.RESET_ALL)
+        return True
+
+    def cmd_audit(self) -> bool:
+        logs = self.vault.get_logs()
+        is_valid = self.vault.verify_log_integrity()
+        status_color = Fore.GREEN if is_valid else Fore.RED
+        status_text = "VALID" if is_valid else "COMPROMISED"
+        
+        print(Fore.CYAN + f"\n--- FORENSIC LOG ({len(logs)}) [CHAIN: {status_color}{status_text}{Fore.CYAN}] ---" + Style.RESET_ALL)
+        for l in logs[:15]: 
+            print(f"{l['timestamp']} | {l['action']:<10} | {l['details']}")
+        input("\nPress Enter to return...")
+        return True
+
+    def cmd_hibp(self) -> bool:
+        print(Fore.YELLOW + "\n[!] Connecting to HaveIBeenPwned (K-Anonymity)..." + Style.RESET_ALL)
+        try:
+            entries = self.vault.get_entries()
+            bad_count = 0
+            
+            for e in entries:
+                print(f"[*] Analyzing {e['title']}...", end="", flush=True)
+                c = PasswordAuditor.check_pwned(e['password'])
+                if c > 0:
+                    print(Fore.RED + f" PWNED! ({c} times)" + Style.RESET_ALL)
+                    bad_count += 1
+                else:
+                    print(Fore.GREEN + " OK" + Style.RESET_ALL)
+                time.sleep(1.5) 
+            
+            if bad_count > 0:
+                self.vault.add_audit_event("HIBP_ALERT", f"Scan found {bad_count} leaked passwords")
+                print(Fore.RED + f"\n[X] ALERT: You have {bad_count} leaked passwords." + Style.RESET_ALL)
+            else:
+                self.vault.add_audit_event("HIBP_CLEAN", "Full scan passed successfully")
+                print(Fore.GREEN + "\n[✓] Your vault is secure." + Style.RESET_ALL)
+        
+        except HIBPConnectionError as e:
+            print(Fore.RED + f"\n[!] Network Error during scan: {e}" + Style.RESET_ALL)
+        return True
+
+def _handle_new_vault(vault: VaultManager, crypto: HarpocratesCrypto) -> None:
+    m_pass_raw = getpass.getpass("Create your Master Password: ")
+    s_key_raw = crypto.generate_secret_key()
+    
+    with SecureString(m_pass_raw) as m_pass_sec, SecureString(s_key_raw) as s_key_sec:
+        vault.create_new_vault(m_pass_sec.decode('utf-8'), s_key_sec.decode('utf-8'))
+    
+    print(f"\nSECRET KEY: {s_key_raw}\nTHIS KEY WILL ONLY BE SHOWN NOW!")
+    getpass.getpass("Save it in a secure place and press ENTER to continue...")
+    
+    print('\033[2J\033[H', end='')
     print(BANNER)
-    
-    vault = VaultManager()
-    crypto = HarpocratesCrypto()
-    
-    if not os.path.exists("vault.hpro"):
-        m_pass_create = getpass.getpass("Create your Master Password: ")
-        s_key_create = crypto.generate_secret_key()
-        vault.create_new_vault(m_pass_create, s_key_create)
-        
-        print(f"\nSECRET KEY: {s_key_create}\nTHIS KEY WILL ONLY BE SHOWN NOW!")
-        getpass.getpass("Save it in a secure place and press ENTER to continue...")
-        
-        del m_pass_create, s_key_create
-        
-        print('\033[2J\033[H', end='')
-        print(BANNER)
-    
-    m_pass = getpass.getpass("[?] Master Password: ")
-    s_key = getpass.getpass("[?] Secret Key: ")
-    
-    access_granted = False
+
+def _authenticate_vault(vault: VaultManager) -> bool:
+    m_pass_raw = getpass.getpass("[?] Master Password: ")
+    s_key_raw = getpass.getpass("[?] Secret Key: ")
     
     try:
-        vault.load_vault(m_pass, s_key)
+        with SecureString(m_pass_raw) as m_pass_sec, SecureString(s_key_raw) as s_key_sec:
+            vault.load_vault(m_pass_sec.decode('utf-8'), s_key_sec.decode('utf-8'))
+            
         vault.add_audit_event("LOGIN", "Access via CLI")
         print(Fore.GREEN + "\n[✓] Access Granted." + Style.RESET_ALL)
-        access_granted = True
+        return True
         
     except VaultMigrationRequired:
         print(Fore.YELLOW + "\n[!] WARNING: Vault is using an older format (v1.x)." + Style.RESET_ALL)
@@ -134,7 +268,7 @@ def run_cli():
             vault.migrate_to_v2()
             vault.add_audit_event("SYSTEM", "Vault migrated to v2.0.0 format")
             print(Fore.GREEN + "[✓] Migration successful. Access Granted." + Style.RESET_ALL)
-            access_granted = True
+            return True
         else:
             print(Fore.RED + "\n[!] Migration cancelled. Exiting..." + Style.RESET_ALL)
             
@@ -147,124 +281,35 @@ def run_cli():
     except Exception as e:
         print(Fore.RED + f"\n[!] Critical System Error: {e}" + Style.RESET_ALL)
         time.sleep(2)
-    finally:
-        if 'm_pass' in locals():
-            del m_pass
-        if 's_key' in locals():
-            del s_key
+        
+    return False
 
-    if access_granted:
+def run_cli() -> None:
+    print('\033[2J\033[H', end='') 
+    print(BANNER)
+    
+    vault = VaultManager()
+    crypto = HarpocratesCrypto()
+    
+    # Start auto-lock monitor thread
+    monitor_thread = threading.Thread(target=auto_lock_monitor, daemon=True)
+    monitor_thread.start()
+    
+    if not os.path.exists(vault.vault_path):
+        _handle_new_vault(vault, crypto)
+    
+    if _authenticate_vault(vault):
+        dispatcher = CommandDispatcher(vault)
         while True:
+            update_activity()
             print(f"\n{'-'*30} MAIN MENU v2.0.0 {'-'*40}")
-            print("1.  List         2. Add         3. Search")
-            print("4.  Generate     5. Import      6. Exit")
-            print("7.  Backup       8. Audit Log   9. HIBP Scan")
+            print("1. List         2. Search      3. Add")
+            print("4. Generate     5. Import      6. Backup")
+            print("7. Audit Log    8. HIBP Scan   9. Exit")
             op = input("\n> ").strip()
             
-            if op == '1':
-                entries = vault.get_entries()
-                print(f"\nID    | {'SERVICE':<40} | USERNAME")
-                print("-" * 60)
-                for i, e in enumerate(entries):
-                    print(f"{i:<4} | {e['title']:<40} | {e['username']}")
-                sel = input("\nID to manage (Enter to go back): ")
-                if sel.isdigit() and int(sel) < len(entries):
-                    entry_action_menu(vault, entries[int(sel)], int(sel))
-
-            elif op == '2':
-                t = ""
-                while not t.strip():
-                    t = input("Service (required): ").strip()
-                
-                u = ""
-                while not u.strip():
-                    u = input("Username (required): ").strip()
-                
-                gen_prompt = input("Auto-generate password? (y/n): ").lower()
-                if gen_prompt == 'y':
-                    p = PasswordGenerator.generate(24)
-                    print(f"Generated Password: {Fore.GREEN}{p}{Style.RESET_ALL}")
-                    if input("Copy to clipboard? (y/n): ").lower() == 'y': secure_copy(p)
-                else:
-                    p = ""
-                    while not p:
-                        p = getpass.getpass("Password (required): ")
-
-                print(f"Strength: {check_strength(p)}")
-                vault.add_entry(t, u, p, input("URL (optional): "), input("Notes (optional): "))
-                print(Fore.GREEN + "[✓] Saved successfully." + Style.RESET_ALL)
-
-            elif op == '3':
-                q = input("Search: ").lower()
-                entries = vault.get_entries()
-                res = [(i,e) for i,e in enumerate(entries) if q in e['title'].lower()]
-                for i, (idx, e) in enumerate(res): print(f"[{i}] {e['title']}")
-                if res:
-                    sel = input("Select ID: ")
-                    if sel.isdigit() and int(sel) < len(res):
-                        entry_action_menu(vault, res[int(sel)][1], res[int(sel)][0])
-
-            elif op == '4':
-                pw = PasswordGenerator.generate(32)
-                print(f"Generated Password: {Fore.GREEN}{pw}{Style.RESET_ALL}")
-                if input("Copy to clipboard? (y/n): ").lower() == 'y': secure_copy(pw)
-
-            elif op == '5':
-                path = input("CSV Path: ").strip('"')
-                if input("Import? (y/n): ").lower() == 'y':
-                    qty, msg = import_from_csv(path, vault) 
-                    print(msg)
-                    if qty > 0: vault.add_audit_event("IMPORT", f"Imported {qty} items")
-
-            elif op == '6':
-                print("\n[!] Closing session securely...")
+            if not dispatcher.dispatch(op):
                 break
 
-            elif op == '7':
-                bk = f"backup_{os.urandom(6).hex()}.hpro"
-                shutil.copy("vault.hpro", bk)
-                if os.name == 'posix':
-                    os.chmod(bk, 0o600)
-                vault.add_audit_event("BACKUP", f"Created {bk}")
-                print(Fore.GREEN + f"[✓] Backup created securely: {bk}" + Style.RESET_ALL)
-
-            elif op == '8':
-                logs = vault.get_logs()
-                is_valid = vault.verify_log_integrity()
-                status_color = Fore.GREEN if is_valid else Fore.RED
-                status_text = "VALID" if is_valid else "COMPROMISED"
-                
-                print(Fore.CYAN + f"\n--- FORENSIC LOG ({len(logs)}) [CHAIN: {status_color}{status_text}{Fore.CYAN}] ---" + Style.RESET_ALL)
-                for l in logs[:15]: 
-                    print(f"{l['timestamp']} | {l['action']:<10} | {l['details']}")
-                input("\nPress Enter to return...")
-
-            elif op == '9':
-                print(Fore.YELLOW + "\n[!] Connecting to HaveIBeenPwned (K-Anonymity)..." + Style.RESET_ALL)
-                try:
-                    entries = vault.get_entries()
-                    bad_count = 0
-                    
-                    for e in entries:
-                        print(f"[*] Analyzing {e['title']}...", end="", flush=True)
-                        c = PasswordAuditor.check_pwned(e['password'])
-                        if c > 0:
-                            print(Fore.RED + f" PWNED! ({c} times)" + Style.RESET_ALL)
-                            bad_count += 1
-                        else:
-                            print(Fore.GREEN + " OK" + Style.RESET_ALL)
-                        time.sleep(1.5) 
-                    
-                    if bad_count > 0:
-                        vault.add_audit_event("HIBP_ALERT", f"Scan found {bad_count} leaked passwords")
-                        print(Fore.RED + f"\n[X] ALERT: You have {bad_count} leaked passwords." + Style.RESET_ALL)
-                    else:
-                        vault.add_audit_event("HIBP_CLEAN", "Full scan passed successfully")
-                        print(Fore.GREEN + "\n[✓] Your vault is secure." + Style.RESET_ALL)
-                
-                except HIBPConnectionError as e:
-                    print(Fore.RED + f"\n[!] Network Error during scan: {e}" + Style.RESET_ALL)
-
-    
 if __name__ == "__main__":
-    run_cli()
+    run_cli()

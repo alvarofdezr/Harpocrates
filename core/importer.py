@@ -1,7 +1,7 @@
 import csv
 from pathlib import Path
 from typing import Tuple
-from colorama import Fore, Style
+from colorama import Fore, Style  # type: ignore
 from core.vault import VaultManager
 
 def import_from_csv(file_path: str, vault_manager: VaultManager) -> Tuple[int, str]:
@@ -31,7 +31,7 @@ def import_from_csv(file_path: str, vault_manager: VaultManager) -> Tuple[int, s
         with open(resolved, newline='', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
             
-            field_map = {k.lower(): k for k in reader.fieldnames if k}
+            field_map = {k.lower(): k for k in (reader.fieldnames or []) if k}
 
             col_name = field_map.get('name') or field_map.get('login_name') or field_map.get('title')
             col_url = field_map.get('url') or field_map.get('login_uri')

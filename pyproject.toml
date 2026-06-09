@@ -22,12 +22,12 @@ dependencies = [
 [project.scripts]
 harpocrates = "main:main"
 
-[tool.setuptools.packages.find]
-include = ["app*", "core*"]
-
 [project.optional-dependencies]
 dev = [
     "mypy>=1.8.0",
     "bandit>=1.7.5",
     "pip-audit>=2.7.1"
 ]
+
+[tool.setuptools.packages.find]
+include = ["app*", "core*"]
