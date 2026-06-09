@@ -20,7 +20,7 @@ jobs:
         pip install bandit pip-audit mypy black flake8
         
     - name: Format Check (Black)
-      run: black --check core/ app/
+      run: black --check --target-version py310 core/ app/
       
     - name: Lint (Flake8)
       run: flake8 core/ app/ --max-line-length=120

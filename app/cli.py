@@ -236,7 +236,9 @@ class CommandDispatcher:
             + Style.RESET_ALL
         )
         for log_entry in logs[:15]:
-            print(f"{log_entry['timestamp']} | {log_entry['action']:<10} | {log_entry['details']}")
+            print(
+                f"{log_entry['timestamp']} | {log_entry['action']:<10} | {log_entry['details']}"
+            )
         input("\nPress Enter to return...")
         return True
 

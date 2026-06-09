@@ -1,4 +1,3 @@
-
 import secrets
 from typing import Union
 from cryptography.hazmat.primitives.kdf.argon2 import Argon2id

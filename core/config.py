@@ -6,6 +6,7 @@ class Settings:
     Configuration management for Harpocrates Vault.
     Loads settings from environment variables or applies secure defaults.
     """
+
     def __init__(self) -> None:
         self.vault_path: str = os.getenv("VAULT_PATH", "vault.hpro")
         self.debug: bool = os.getenv("DEBUG", "False").lower() in ("true", "1", "t")
